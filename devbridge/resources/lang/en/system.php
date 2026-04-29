@@ -17,4 +17,14 @@ return [
     'openrouter_key'    => 'OpenRouter API Key',
     'configured'        => 'configured (masked)',
     'not_configured'    => 'not set',
+    'integrations'      => 'Integration Tests',
+    'test_openrouter'   => 'Test OpenRouter',
+    'test_github'       => 'Test GitHub',
+    'openrouter_ok'     => 'OpenRouter: connection successful',
+    'openrouter_fail'   => 'OpenRouter: error',
+    'github_ok'         => 'GitHub: connection successful',
+    'github_fail'       => 'GitHub: connection failed',
+    'webhook_endpoint'  => 'Webhook endpoint',
+    'webhook_url_label' => 'Webhook URL',
 ];
+

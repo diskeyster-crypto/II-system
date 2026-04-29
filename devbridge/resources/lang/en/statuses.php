@@ -21,6 +21,22 @@ return [
     'pending'                => 'Pending',
     'approved'               => 'Approved',
     'rejected'               => 'Rejected',
+    // Flat priority keys
+    'priority_low'    => 'Low',
+    'priority_normal' => 'Normal',
+    'priority_high'   => 'High',
+    'priority_urgent' => 'Urgent',
+    // Flat risk keys
+    'risk_low'      => 'Low',
+    'risk_medium'   => 'Medium',
+    'risk_high'     => 'High',
+    'risk_critical' => 'Critical',
+    // Flat run_mode keys
+    'run_mode_manual'             => 'Manual',
+    'run_mode_run_now'            => 'Run Now',
+    'run_mode_queue'              => 'Queue',
+    'run_mode_after_dependencies' => 'After Dependencies',
+    // Nested (backward compat)
     'priorities' => [
         'low'    => 'Low',
         'normal' => 'Normal',
@@ -47,3 +63,4 @@ return [
         'critical' => 'Critical',
     ],
 ];
+

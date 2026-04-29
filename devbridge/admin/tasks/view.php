@@ -47,25 +47,48 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $detector = new ConflictDetector();
             $creator  = new IssueCreator($gh, $detector);
             $issue    = $creator->create($taskId, $override);
-            $success  = "GitHub Issue #{$issue['number']} created: {$issue['html_url']}";
+            $success  = t('github.issue_created') . " #{$issue['number']}: {$issue['html_url']}";
             // Reload task
             $stmt->execute([$taskId]);
             $task = $stmt->fetch();
         } catch (\Throwable $e) {
             $error = $e->getMessage();
         }
+    } elseif ($action === 'link_pr') {
+        $prInput = trim($_POST['pr_input'] ?? '');
+        $prNumber = 0;
+        $prUrl    = '';
+        // Accept either a full URL or a plain number
+        if (preg_match('#/pull/(\d+)#', $prInput, $m)) {
+            $prNumber = (int)$m[1];
+            $prUrl    = $prInput;
+        } elseif (ctype_digit(ltrim($prInput, '#'))) {
+            $prNumber = (int)ltrim($prInput, '#');
+            $prUrl    = 'https://github.com/' . $task['github_owner'] . '/' . $task['github_repo'] . '/pull/' . $prNumber;
+        }
+        if ($prNumber > 0) {
+            $db->prepare(
+                'UPDATE dev_tasks SET github_pr_number = ?, github_pr_url = ?, status = "pr_created", updated_at = NOW() WHERE id = ?'
+            )->execute([$prNumber, $prUrl, $taskId]);
+            Logger::log('github_request', "PR #$prNumber linked to task $taskId", $taskId, $task['project_id']);
+            $success = t('tasks.pr_linked');
+            $stmt->execute([$taskId]);
+            $task = $stmt->fetch();
+        } else {
+            $error = t('tasks.pr_invalid');
+        }
     } elseif ($action === 'fetch_pr_diff') {
         try {
             $gh      = new GitHubService();
             $fetcher = new PRDiffFetcher($gh);
             $fetcher->fetchAndStore($taskId);
-            $success = 'PR diff fetched and stored.';
+            $success = t('tasks.pr_diff_fetched');
         } catch (\Throwable $e) {
             $error = $e->getMessage();
         }
     } elseif ($action === 'gpt_review') {
         try {
-            $ai       = new OpenRouterClient();
+            $ai       = OpenRouterClient::forReviewer();
             $reviewer = new GPTCodeReviewer($ai);
             $result   = $reviewer->review($taskId);
             $status   = $result['status'] ?? 'unknown';
@@ -80,30 +103,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             };
             $db->prepare('UPDATE dev_tasks SET status = ?, review_cycles = review_cycles + 1 WHERE id = ?')
                ->execute([$newStatus, $taskId]);
-            $task['status']       = $newStatus;
+            $task['status'] = $newStatus;
 
-            // If changes requested and not needs_operator_decision, post PR comment
             if (in_array($status, ['request_changes', 'rejected'])) {
                 $checkCycles = (int)$task['review_cycles'] + 1;
                 if ($checkCycles >= 3) {
                     $db->prepare('UPDATE dev_tasks SET status = "waiting_for_operator" WHERE id = ?')->execute([$taskId]);
                     $task['status'] = 'waiting_for_operator';
-                    $success = 'GPT review complete. Max fix cycles reached – waiting for operator.';
+                    $success = t('tasks.gpt_review_max_cycles');
                 } else {
                     postPRComment($task, $result, $db);
-                    $success = "GPT review complete: $status. PR comment posted.";
+                    $success = t('tasks.gpt_review_complete', ['status' => $status]);
                 }
             } elseif ($status === 'approved') {
                 $db->prepare('UPDATE dev_tasks SET status = "ready_for_manual_merge" WHERE id = ?')->execute([$taskId]);
                 $task['status'] = 'ready_for_manual_merge';
-                $success = '✅ GPT approved the code. Task is ready for manual merge.';
+                $success = t('tasks.gpt_approved');
             } elseif ($status === 'needs_operator_decision') {
                 $question = $result['operator_question'] ?? 'GPT needs operator decision.';
                 $db->prepare('INSERT INTO operator_decisions (task_id, admin_id, action, notes) VALUES (?, ?, "gpt_question", ?)')
                    ->execute([$taskId, Auth::adminId(), $question]);
-                $success = 'GPT needs your decision. See Operator Decisions.';
+                $success = t('tasks.gpt_needs_decision');
             } else {
-                $success = "GPT review: $status";
+                $success = 'GPT review: ' . $status;
             }
 
             // Reload task
@@ -119,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $db->prepare('UPDATE dev_tasks SET status = ? WHERE id = ?')->execute([$newStatus, $taskId]);
             $task['status'] = $newStatus;
             Logger::log('operator_decision', "Operator set task $taskId status to $newStatus", $taskId, $task['project_id']);
-            $success = 'Status updated.';
+            $success = t('tasks.status_updated');
         }
     }
 }
@@ -175,8 +197,8 @@ require APP_ROOT . '/views/layout.php';
 
 <!-- Action bar -->
 <div class="flex gap-2 mb-4 items-center flex-wrap">
-  <a href="<?= BASE_URL ?>/admin/tasks/chat.php?id=<?= $taskId ?>" class="btn btn-secondary btn-sm">💬 Open Chat</a>
-  <a href="<?= BASE_URL ?>/admin/tasks/" class="btn btn-secondary btn-sm">← All Tasks</a>
+  <a href="<?= BASE_URL ?>/admin/tasks/chat.php?id=<?= $taskId ?>" class="btn btn-secondary btn-sm"><?= e(t('tasks.open_chat')) ?></a>
+  <a href="<?= BASE_URL ?>/admin/tasks/" class="btn btn-secondary btn-sm"><?= e(t('tasks.all_tasks')) ?></a>
 
   <?php if ($task['status'] === 'ready_to_run'): ?>
     <span id="approve" style="scroll-margin-top:20px">
@@ -184,24 +206,24 @@ require APP_ROOT . '/views/layout.php';
         <?= Csrf::field() ?>
         <input type="hidden" name="action" value="create_issue">
         <button type="submit" class="btn btn-success btn-sm"
-                onclick="return confirm('Create GitHub Issue for this task?')">
-          ✅ Approve &amp; Create Issue
+                onclick="return confirm('<?= e(t('tasks.create_issue_confirm')) ?>')">
+          ✅ <?= e(t('tasks.btn_create_issue')) ?>
         </button>
       </form>
     </span>
   <?php endif; ?>
 
-  <?php if (in_array($task['status'], ['pr_created','reviewing','changes_requested'])): ?>
+  <?php if ($task['github_pr_number']): ?>
     <form method="post" style="display:inline">
       <?= Csrf::field() ?>
       <input type="hidden" name="action" value="fetch_pr_diff">
-      <button type="submit" class="btn btn-secondary btn-sm">🔄 Fetch PR Diff</button>
+      <button type="submit" class="btn btn-secondary btn-sm">🔄 <?= e(t('tasks.btn_fetch_diff')) ?></button>
     </form>
     <form method="post" style="display:inline">
       <?= Csrf::field() ?>
       <input type="hidden" name="action" value="gpt_review">
       <button type="submit" class="btn btn-primary btn-sm"
-              onclick="return confirm('Run GPT code review?')">🔍 GPT Review</button>
+              onclick="return confirm('<?= e(t('tasks.gpt_review_confirm')) ?>')">🔍 <?= e(t('tasks.btn_gpt_review')) ?></button>
     </form>
   <?php endif; ?>
 
@@ -210,9 +232,9 @@ require APP_ROOT . '/views/layout.php';
     <?= Csrf::field() ?>
     <input type="hidden" name="action" value="set_status">
     <select name="new_status" style="width:auto">
-      <option value="">— set status —</option>
+      <option value="">— <?= e(t('tasks.set_status')) ?> —</option>
       <?php foreach (['assigned_to_agent','merged','failed','cancelled','ready_for_manual_merge','waiting_for_operator'] as $s): ?>
-        <option value="<?= $s ?>"><?= str_replace('_', ' ', $s) ?></option>
+        <option value="<?= $s ?>"><?= t('statuses.' . $s) ?></option>
       <?php endforeach; ?>
     </select>
     <button type="submit" class="btn btn-secondary btn-sm">Set</button>
@@ -223,19 +245,19 @@ require APP_ROOT . '/views/layout.php';
   <!-- Left: Task details -->
   <div style="flex:1.2">
     <div class="card">
-      <div class="card-title">Task Details</div>
+      <div class="card-title"><?= e(t('tasks.details')) ?></div>
       <table>
-        <tr><td class="text-muted" style="width:130px">Status</td><td><span class="badge badge-draft"><?= e(str_replace('_', ' ', $task['status'])) ?></span></td></tr>
-        <tr><td class="text-muted">Priority</td><td><span class="badge badge-<?= e($task['priority']) ?>"><?= e($task['priority']) ?></span></td></tr>
-        <tr><td class="text-muted">Risk</td><td><span class="badge badge-<?= e($task['risk_level']) ?>"><?= e($task['risk_level']) ?></span></td></tr>
-        <tr><td class="text-muted">Conflict</td><td><span class="badge badge-<?= e($task['conflict_status']) ?>"><?= e($task['conflict_status']) ?></span></td></tr>
-        <tr><td class="text-muted">Run Mode</td><td><?= e(str_replace('_', ' ', $task['run_mode'])) ?></td></tr>
-        <tr><td class="text-muted">Review Cycles</td><td><?= (int)$task['review_cycles'] ?>/3</td></tr>
+        <tr><td class="text-muted" style="width:130px"><?= e(t('common.status')) ?></td><td><span class="badge badge-draft"><?= e(t('statuses.' . $task['status'])) ?></span></td></tr>
+        <tr><td class="text-muted"><?= e(t('tasks.priority')) ?></td><td><span class="badge badge-<?= e($task['priority']) ?>"><?= e(t('statuses.priority_' . $task['priority'])) ?></span></td></tr>
+        <tr><td class="text-muted"><?= e(t('tasks.risk_level')) ?></td><td><span class="badge badge-<?= e($task['risk_level']) ?>"><?= e(t('statuses.risk_' . $task['risk_level'])) ?></span></td></tr>
+        <tr><td class="text-muted"><?= e(t('tasks.conflict_status')) ?></td><td><span class="badge badge-<?= e($task['conflict_status']) ?>"><?= e($task['conflict_status'] ?: '—') ?></span></td></tr>
+        <tr><td class="text-muted"><?= e(t('tasks.run_mode')) ?></td><td><?= e(t('statuses.run_mode_' . $task['run_mode'])) ?></td></tr>
+        <tr><td class="text-muted"><?= e(t('tasks.review_cycles')) ?></td><td><?= (int)$task['review_cycles'] ?>/3</td></tr>
         <?php if ($task['branch_name']): ?>
-        <tr><td class="text-muted">Branch</td><td><code><?= e($task['branch_name']) ?></code></td></tr>
+        <tr><td class="text-muted"><?= e(t('tasks.branch_name')) ?></td><td><code><?= e($task['branch_name']) ?></code></td></tr>
         <?php endif; ?>
         <?php if ($task['github_issue_url']): ?>
-        <tr><td class="text-muted">Issue</td><td><a href="<?= e($task['github_issue_url']) ?>" target="_blank" rel="noopener">#<?= (int)$task['github_issue_number'] ?> ↗</a></td></tr>
+        <tr><td class="text-muted"><?= e(t('tasks.github_issue')) ?></td><td><a href="<?= e($task['github_issue_url']) ?>" target="_blank" rel="noopener">#<?= (int)$task['github_issue_number'] ?> ↗</a></td></tr>
         <?php endif; ?>
         <?php if ($task['github_pr_url']): ?>
         <tr><td class="text-muted">PR</td><td><a href="<?= e($task['github_pr_url']) ?>" target="_blank" rel="noopener">#<?= (int)$task['github_pr_number'] ?> ↗</a></td></tr>
@@ -243,9 +265,22 @@ require APP_ROOT . '/views/layout.php';
       </table>
     </div>
 
+    <!-- Link PR card -->
+    <div class="card">
+      <div class="card-title">🔗 <?= e(t('tasks.link_pr')) ?></div>
+      <form method="post" class="flex gap-2 items-center">
+        <?= Csrf::field() ?>
+        <input type="hidden" name="action" value="link_pr">
+        <input type="text" name="pr_input" style="flex:1"
+               value="<?= $task['github_pr_number'] ? '#' . (int)$task['github_pr_number'] : '' ?>"
+               placeholder="<?= e(t('tasks.pr_number_or_url')) ?>">
+        <button type="submit" class="btn btn-secondary btn-sm"><?= e(t('tasks.btn_link_pr')) ?></button>
+      </form>
+    </div>
+
     <?php if ($task['original_operator_request']): ?>
     <div class="card">
-      <div class="card-title">Original Request</div>
+      <div class="card-title"><?= e(t('tasks.original_req_card')) ?></div>
       <p style="white-space:pre-wrap;font-size:0.9rem"><?= e($task['original_operator_request']) ?></p>
     </div>
     <?php endif; ?>
@@ -255,7 +290,7 @@ require APP_ROOT . '/views/layout.php';
   <div style="flex:2">
     <?php if ($task['final_task_spec']): ?>
     <div class="card">
-      <div class="card-title">Final Task Spec</div>
+      <div class="card-title"><?= e(t('tasks.final_spec')) ?></div>
       <pre style="font-size:0.83rem;max-height:400px;overflow:auto;white-space:pre-wrap"><?= e($task['final_task_spec']) ?></pre>
     </div>
     <?php endif; ?>
@@ -263,18 +298,18 @@ require APP_ROOT . '/views/layout.php';
     <?php if ($reviewData): ?>
     <div class="card">
       <div class="flex justify-between items-center mb-3">
-        <div class="card-title" style="margin:0">Latest GPT Review</div>
+        <div class="card-title" style="margin:0"><?= e(t('tasks.latest_review')) ?></div>
         <span class="badge badge-<?= $reviewData['status'] === 'approved' ? 'approved' : ($reviewData['status'] === 'needs_operator_decision' ? 'waiting' : 'failed') ?>">
           <?= e($reviewData['status'] ?? '') ?>
         </span>
       </div>
-      <p><strong>Score:</strong> <?= (int)($reviewData['score'] ?? 0) ?>/100</p>
-      <p><strong>Summary:</strong> <?= e($reviewData['summary'] ?? '') ?></p>
-      <p><strong>Merge Decision:</strong> <code><?= e($reviewData['merge_decision'] ?? '') ?></code></p>
+      <p><strong><?= e(t('tasks.score')) ?>:</strong> <?= (int)($reviewData['score'] ?? 0) ?>/100</p>
+      <p><strong><?= e(t('tasks.summary')) ?>:</strong> <?= e($reviewData['summary'] ?? '') ?></p>
+      <p><strong><?= e(t('tasks.merge_decision')) ?>:</strong> <code><?= e($reviewData['merge_decision'] ?? '') ?></code></p>
 
       <?php if (!empty($reviewData['blocking_issues'])): ?>
         <hr class="divider">
-        <strong>Blocking Issues</strong>
+        <strong><?= e(t('tasks.blocking_issues')) ?></strong>
         <?php foreach ($reviewData['blocking_issues'] as $issue): ?>
           <div style="background:var(--bg);border:1px solid #7f1d1d;border-radius:8px;padding:10px;margin-top:8px;font-size:0.85rem">
             <span class="badge badge-failed"><?= e($issue['severity'] ?? '') ?></span>
@@ -289,7 +324,7 @@ require APP_ROOT . '/views/layout.php';
       <?php if (!empty($reviewData['operator_question'])): ?>
         <hr class="divider">
         <div class="alert alert-warning">
-          <strong>⚠ GPT Question:</strong> <?= e($reviewData['operator_question']) ?>
+          <strong><?= e(t('tasks.gpt_question')) ?></strong> <?= e($reviewData['operator_question']) ?>
         </div>
       <?php endif; ?>
     </div>
@@ -297,7 +332,7 @@ require APP_ROOT . '/views/layout.php';
 
     <?php if ($task['conflict_details_json'] && $task['conflict_details_json'] !== 'null'): ?>
     <div class="card">
-      <div class="card-title">Conflict Details</div>
+      <div class="card-title"><?= e(t('tasks.conflict_details')) ?></div>
       <pre style="font-size:0.8rem"><?= e(json_encode(json_decode($task['conflict_details_json']), JSON_PRETTY_PRINT)) ?></pre>
       <?php if ($task['status'] === 'blocked_by_dependency' || $task['conflict_status'] === 'blocking'): ?>
       <form method="post" class="mt-3">
@@ -305,8 +340,8 @@ require APP_ROOT . '/views/layout.php';
         <input type="hidden" name="action" value="create_issue">
         <input type="hidden" name="override_conflict" value="1">
         <button type="submit" class="btn btn-danger btn-sm"
-                onclick="return confirm('Override conflict and create issue anyway?')">
-          ⚠ Override &amp; Create Issue
+                onclick="return confirm('<?= e(t('tasks.override_confirm')) ?>')">
+          <?= e(t('tasks.btn_override_conflict')) ?>
         </button>
       </form>
       <?php endif; ?>

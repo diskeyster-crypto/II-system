@@ -21,6 +21,22 @@ return [
     'pending'                => 'Ожидает',
     'approved'               => 'Одобрено',
     'rejected'               => 'Отклонено',
+    // Flat priority keys
+    'priority_low'    => 'Низкий',
+    'priority_normal' => 'Обычный',
+    'priority_high'   => 'Высокий',
+    'priority_urgent' => 'Срочный',
+    // Flat risk keys
+    'risk_low'      => 'Низкий',
+    'risk_medium'   => 'Средний',
+    'risk_high'     => 'Высокий',
+    'risk_critical' => 'Критический',
+    // Flat run_mode keys
+    'run_mode_manual'             => 'Вручную',
+    'run_mode_run_now'            => 'Запустить сейчас',
+    'run_mode_queue'              => 'В очередь',
+    'run_mode_after_dependencies' => 'После зависимостей',
+    // Nested (kept for backward compat)
     'priorities' => [
         'low'    => 'Низкий',
         'normal' => 'Обычный',
@@ -47,3 +63,4 @@ return [
         'critical' => 'Критический',
     ],
 ];
+

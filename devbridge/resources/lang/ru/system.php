@@ -17,4 +17,14 @@ return [
     'openrouter_key'    => 'Ключ OpenRouter',
     'configured'        => 'настроен (скрыт)',
     'not_configured'    => 'не настроен',
+    'integrations'      => 'Тесты подключений',
+    'test_openrouter'   => 'Проверить OpenRouter',
+    'test_github'       => 'Проверить GitHub',
+    'openrouter_ok'     => 'OpenRouter: подключение успешно',
+    'openrouter_fail'   => 'OpenRouter: ошибка',
+    'github_ok'         => 'GitHub: подключение успешно',
+    'github_fail'       => 'GitHub: ошибка подключения',
+    'webhook_endpoint'  => 'Webhook endpoint',
+    'webhook_url_label' => 'URL webhook',
 ];
+

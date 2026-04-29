@@ -5,9 +5,46 @@ define('APP_ROOT', dirname(__DIR__));
 require APP_ROOT . '/app/bootstrap.php';
 
 use DevBridge\Core\Auth;
+use DevBridge\Core\Csrf;
 use DevBridge\Core\Database;
+use DevBridge\Core\Settings;
+use DevBridge\AI\OpenRouterClient;
+use DevBridge\Services\GitHubService;
+use DevBridge\Core\Logger;
 
 Auth::requireLogin();
+
+// -----------------------------------------------------------------------
+// Handle integration test actions
+// -----------------------------------------------------------------------
+$testResult = [];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    Csrf::verify();
+    $action = $_POST['action'] ?? '';
+
+    if ($action === 'test_openrouter') {
+        try {
+            $ai    = new OpenRouterClient();
+            $reply = $ai->chat([['role' => 'user', 'content' => 'Respond with exactly: OK']]);
+            $testResult['openrouter'] = ['ok' => true, 'msg' => t('system.openrouter_ok') . ' (' . e(trim(substr($reply, 0, 80))) . ')'];
+            Logger::log('ai_request', 'System check: OpenRouter test OK');
+        } catch (\Throwable $e) {
+            $testResult['openrouter'] = ['ok' => false, 'msg' => t('system.openrouter_fail') . ': ' . $e->getMessage()];
+            Logger::log('error', 'System check: OpenRouter test failed: ' . $e->getMessage());
+        }
+    } elseif ($action === 'test_github') {
+        try {
+            $gh   = new GitHubService();
+            $user = $gh->testConnection();
+            $testResult['github'] = ['ok' => true, 'msg' => t('system.github_ok') . ' (@' . ($user['login'] ?? '?') . ')'];
+            Logger::log('github_request', 'System check: GitHub test OK');
+        } catch (\Throwable $e) {
+            $testResult['github'] = ['ok' => false, 'msg' => t('system.github_fail') . ': ' . $e->getMessage()];
+            Logger::log('error', 'System check: GitHub test failed: ' . $e->getMessage());
+        }
+    }
+}
 
 // -----------------------------------------------------------------------
 // Gather diagnostics
@@ -142,5 +179,48 @@ function checkRow(string $label, bool $ok, string $detail = ''): void
     <?php checkRow(t('system.openrouter_key'), $openrouterConfigured, $openrouterConfigured ? t('system.configured') : t('system.not_configured')); ?>
   </table>
 </div>
+
+<!-- Integration tests -->
+<div class="card" style="max-width:760px;margin-top:16px">
+  <div class="card-title"><?= e(t('system.integrations')) ?></div>
+
+  <?php if (!empty($testResult)): ?>
+    <?php foreach ($testResult as $key => $res): ?>
+      <div class="alert <?= $res['ok'] ? 'alert-success' : 'alert-danger' ?>" style="margin-bottom:8px">
+        <?= $res['ok'] ? '✔' : '✘' ?> <?= htmlspecialchars($res['msg'], ENT_QUOTES, 'UTF-8') ?>
+      </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
+
+  <div class="flex gap-2 mt-2 flex-wrap">
+    <form method="post" style="display:inline">
+      <?= Csrf::field() ?>
+      <button type="submit" name="action" value="test_openrouter" class="btn btn-secondary btn-sm">
+        🤖 <?= e(t('system.test_openrouter')) ?>
+      </button>
+    </form>
+    <form method="post" style="display:inline">
+      <?= Csrf::field() ?>
+      <button type="submit" name="action" value="test_github" class="btn btn-secondary btn-sm">
+        🐙 <?= e(t('system.test_github')) ?>
+      </button>
+    </form>
+  </div>
+</div>
+
+<!-- Webhook URL -->
+<?php
+$webhookBase = Settings::get('webhook_base_url');
+if ($webhookBase):
+    $webhookUrl = rtrim($webhookBase, '/') . '/webhook/github.php';
+?>
+<div class="card" style="max-width:760px;margin-top:16px">
+  <div class="card-title"><?= e(t('system.webhook_endpoint')) ?></div>
+  <p class="text-muted text-sm" style="margin-bottom:6px"><?= e(t('system.webhook_url_label')) ?>:</p>
+  <code style="display:block;background:var(--bg);padding:10px;border-radius:6px;word-break:break-all">
+    <?= htmlspecialchars($webhookUrl, ENT_QUOTES, 'UTF-8') ?>
+  </code>
+</div>
+<?php endif; ?>
 
 <?php require APP_ROOT . '/views/layout_footer.php'; ?>

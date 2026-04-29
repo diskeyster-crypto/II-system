@@ -8,4 +8,6 @@ return [
     'webhook_installed'=> 'Webhook установлен.',
     'webhook_invalid'  => 'Некорректная подпись webhook.',
     'api_error'        => 'Ошибка GitHub API.',
+    'not_configured'   => 'Токен GitHub не настроен.',
 ];
+

@@ -8,4 +8,6 @@ return [
     'webhook_installed' => 'Webhook installed.',
     'webhook_invalid'   => 'Webhook signature invalid.',
     'api_error'         => 'GitHub API error.',
+    'not_configured'    => 'GitHub token is not configured.',
 ];
+

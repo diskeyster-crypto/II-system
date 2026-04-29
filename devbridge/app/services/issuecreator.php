@@ -5,6 +5,7 @@ namespace DevBridge\Services;
 
 use DevBridge\Core\Database;
 use DevBridge\Core\Logger;
+use DevBridge\Core\Settings;
 
 class IssueCreator
 {
@@ -38,7 +39,21 @@ class IssueCreator
         $stmt->execute([$taskId]);
         $task = $stmt->fetch();
         if (!$task) {
-            throw new \RuntimeException("Task $taskId not found.");
+            throw new \RuntimeException(t('tasks.not_found'));
+        }
+
+        // Verify prerequisites
+        $githubToken = Settings::getDecrypted('github_token');
+        if (!$githubToken) {
+            throw new \RuntimeException(t('github.not_configured'));
+        }
+
+        if (empty($task['final_task_spec'])) {
+            throw new \RuntimeException(t('tasks.no_spec'));
+        }
+
+        if ($task['status'] !== 'ready_to_run') {
+            throw new \RuntimeException(t('tasks.not_ready') . ' (status: ' . $task['status'] . ')');
         }
 
         // Check dependencies
@@ -53,7 +68,7 @@ class IssueCreator
             foreach ($depTasks as $dep) {
                 if (!in_array($dep['status'], ['merged', 'cancelled'])) {
                     throw new \RuntimeException(
-                        "Task depends on #{$dep['id']} ({$dep['title']}) which is not yet merged (status: {$dep['status']})."
+                        t('tasks.dependency_not_merged', ['id' => $dep['id'], 'title' => $dep['title'], 'status' => $dep['status']])
                     );
                 }
             }
@@ -68,8 +83,7 @@ class IssueCreator
             $db->prepare('UPDATE dev_tasks SET conflict_status = ?, conflict_details_json = ? WHERE id = ?')
                ->execute([ConflictDetector::BLOCKING, json_encode($conflict['details']), $taskId]);
             throw new \RuntimeException(
-                'Task has a BLOCKING conflict: ' . json_encode($conflict['details']) .
-                ' Use override flag to force-start anyway.'
+                t('tasks.blocking_conflict') . ' ' . json_encode($conflict['details'])
             );
         }
 
@@ -79,8 +93,13 @@ class IssueCreator
         $slug = substr($slug, 0, 40);
         $branchName = 'devbridge/task-' . $taskId . '-' . $slug;
 
-        // Build issue body
-        $body = $this->buildIssueBody($task, $branchName);
+        // Build issue body using TaskSpecRenderer
+        $renderer = new TaskSpecRenderer();
+        $specJson  = null;
+        if (!empty($task['spec_json'])) {
+            $specJson = json_decode($task['spec_json'], true);
+        }
+        $body = $renderer->render($task, $branchName, $specJson ?: null);
 
         // Create issue on GitHub
         $owner = $task['github_owner'];
@@ -105,60 +124,11 @@ class IssueCreator
 
         Logger::log(
             'github_request',
-            "Created issue #{$issue['number']} for task $taskId: {$issue['html_url']}",
+            t('github.issue_created') . " #{$issue['number']} for task $taskId: {$issue['html_url']}",
             $taskId,
             $task['project_id']
         );
 
         return $issue;
-    }
-
-    private function buildIssueBody(array $task, string $branchName): string
-    {
-        $criteria  = json_decode($task['acceptance_criteria_json'] ?? '[]', true) ?: [];
-        $forbidden = json_decode($task['forbidden_files_json'] ?? '[]', true) ?: [];
-        $allowed   = json_decode($task['allowed_files_json'] ?? '[]', true) ?: [];
-        $expected  = json_decode($task['expected_files_json'] ?? '[]', true) ?: [];
-
-        $criteriaList = implode("\n", array_map(fn($c) => '- [ ] ' . $c, $criteria));
-        $forbiddenList = $forbidden ? implode("\n", array_map(fn($f) => '- `' . $f . '`', $forbidden)) : '_none_';
-        $allowedList  = $allowed  ? implode("\n", array_map(fn($f) => '- `' . $f . '`', $allowed)) : '_any_';
-        $expectedList = $expected ? implode("\n", array_map(fn($f) => '- `' . $f . '`', $expected)) : '_see spec_';
-
-        $rules = trim($task['global_rules'] ?? '');
-        $rulesSection = $rules ? "## Project Rules\n\n$rules\n\n" : '';
-
-        return <<<BODY
-> **This issue was created by DevBridge and assigned to a coding agent.**
-> **Branch:** `$branchName`
-> **Do NOT modify unrelated files.**
-
-## Task Specification
-
-{$task['final_task_spec']}
-
-## Acceptance Criteria
-
-$criteriaList
-
-## Allowed Files
-
-$allowedList
-
-## Forbidden Files (DO NOT MODIFY)
-
-$forbiddenList
-
-## Expected Files
-
-$expectedList
-
-{$rulesSection}## Tech Stack
-
-{$task['tech_stack']}
-
----
-_Task ID: {$task['id']} | Project: {$task['project_name']} | Risk: {$task['risk_level']}_
-BODY;
     }
 }
