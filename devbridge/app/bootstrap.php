@@ -8,7 +8,7 @@ spl_autoload_register(function (string $class): void {
         return;
     }
     $relative = substr($class, strlen($prefix));
-    $file     = __DIR__ . '/' . str_replace('\\', '/', $relative) . '.php';
+    $file     = __DIR__ . '/' . strtolower(str_replace('\\', '/', $relative)) . '.php';
     if (file_exists($file)) {
         require $file;
     }
