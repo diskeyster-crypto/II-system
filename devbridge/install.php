@@ -19,6 +19,23 @@ $errors   = [];
 $success  = false;
 
 // -----------------------------------------------------------------------
+// Installer translation helper (Russian by default, no config/autoloader needed)
+// -----------------------------------------------------------------------
+function instT(string $key, array $params = []): string
+{
+    static $strings = null;
+    if ($strings === null) {
+        $file = __DIR__ . '/resources/lang/ru/install.php';
+        $strings = file_exists($file) ? (require $file) : [];
+    }
+    $value = $strings[$key] ?? $key;
+    foreach ($params as $k => $v) {
+        $value = str_replace(':' . $k, (string)$v, $value);
+    }
+    return $value;
+}
+
+// -----------------------------------------------------------------------
 // Requirement checks
 // -----------------------------------------------------------------------
 function checkRequirements(): array
@@ -82,7 +99,7 @@ function normalizeAppUrl(string $url): array
         return [
             'ok'    => false,
             'url'   => '',
-            'error' => 'Application Base URL is required. Example: http://dev.tredercopis.click',
+            'error' => instT('err_url_required'),
         ];
     }
 
@@ -92,7 +109,7 @@ function normalizeAppUrl(string $url): array
         return [
             'ok'    => false,
             'url'   => '',
-            'error' => 'Application Base URL must include a valid domain. Example: http://dev.tredercopis.click',
+            'error' => instT('err_url_domain'),
         ];
     }
 
@@ -102,7 +119,7 @@ function normalizeAppUrl(string $url): array
         return [
             'ok'    => false,
             'url'   => '',
-            'error' => 'Application Base URL must start with http:// or https://',
+            'error' => instT('err_url_scheme'),
         ];
     }
 
@@ -110,7 +127,7 @@ function normalizeAppUrl(string $url): array
         return [
             'ok'    => false,
             'url'   => '',
-            'error' => 'Application Base URL must not contain a query string. Remove everything after ?.',
+            'error' => instT('err_url_query'),
         ];
     }
 
@@ -118,7 +135,7 @@ function normalizeAppUrl(string $url): array
         return [
             'ok'    => false,
             'url'   => '',
-            'error' => 'Application Base URL must not contain a hash fragment. Remove everything after #.',
+            'error' => instT('err_url_fragment'),
         ];
     }
 
@@ -157,11 +174,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $adminEmail = trim($_POST['admin_email'] ?? '');
 
         // Basic validation
-        if (!$dbUser)   $errors[] = 'Database user is required.';
-        if (!$adminUser) $errors[] = 'Admin username is required.';
-        if (strlen($adminPass) < 8) $errors[] = 'Admin password must be at least 8 characters.';
+        if (!$dbUser)   $errors[] = instT('err_db_user');
+        if (!$adminUser) $errors[] = instT('err_admin_user');
+        if (strlen($adminPass) < 8) $errors[] = instT('err_admin_pass');
         if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $adminUser)) {
-            $errors[] = 'Admin username may only contain letters, digits, underscores, and hyphens.';
+            $errors[] = instT('err_admin_user_chars');
         }
         if (!$appUrlInfo['ok']) {
             $errors[] = $appUrlInfo['error'];
@@ -200,7 +217,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $existingTables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
                 foreach ($requiredTables as $tbl) {
                     if (!in_array($tbl, $existingTables, true)) {
-                        throw new \RuntimeException("Required table was not created: $tbl");
+                        throw new \RuntimeException(instT('err_table_missing', ['table' => $tbl]));
                     }
                 }
 
@@ -245,20 +262,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 $success = true;
             } catch (PDOException $e) {
-                $errors[] = 'Database error: ' . $e->getMessage();
+                $errors[] = instT('err_db', ['message' => $e->getMessage()]);
             } catch (Throwable $e) {
-                $errors[] = 'Installation error: ' . $e->getMessage();
+                $errors[] = instT('err_db', ['message' => $e->getMessage()]);
             }
         }
     }
 }
 
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DevBridge Installer</title>
+<title>DevBridge — <?= htmlspecialchars(instT('title'), ENT_QUOTES, 'UTF-8') ?></title>
 <style>
   * { box-sizing: border-box; }
   body { font-family: system-ui, sans-serif; background: #0f172a; color: #e2e8f0; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
@@ -283,35 +300,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
 <div class="card">
   <h1>⚙ DevBridge</h1>
-  <p class="subtitle">First-time installation wizard</p>
+  <p class="subtitle"><?= htmlspecialchars(instT('title'), ENT_QUOTES, 'UTF-8') ?></p>
 
   <?php if ($success): ?>
     <div class="alert alert-success">
-      ✅ Installation complete! Your DevBridge is ready.
+      ✅ <?= htmlspecialchars(instT('success', ['url' => $appUrl ?? '']), ENT_QUOTES, 'UTF-8') ?>
     </div>
-    <a href="login.php" style="display:block;text-align:center;padding:12px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Go to Login →</a>
+    <a href="login.php" style="display:block;text-align:center;padding:12px;background:#7c3aed;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;">Войти →</a>
   <?php else: ?>
 
   <?php if (!empty($errors)): ?>
     <div class="alert alert-danger">
-      <strong>Errors:</strong><br>
+      <strong><?= htmlspecialchars(instT('errors_title'), ENT_QUOTES, 'UTF-8') ?>:</strong><br>
       <?php foreach ($errors as $e): ?>
         • <?= htmlspecialchars($e, ENT_QUOTES, 'UTF-8') ?><br>
       <?php endforeach; ?>
     </div>
   <?php endif; ?>
 
-  <div class="section-title">System Requirements</div>
+  <div class="section-title"><?= htmlspecialchars(instT('requirements'), ENT_QUOTES, 'UTF-8') ?></div>
   <?php
   $checks = [
-      'PHP 8.1+'   => PHP_VERSION_ID >= 80100,
-      'pdo'        => extension_loaded('pdo'),
-      'pdo_mysql'  => extension_loaded('pdo_mysql'),
-      'curl'       => extension_loaded('curl'),
-      'json'       => extension_loaded('json'),
-      'mbstring'   => extension_loaded('mbstring'),
-      'openssl'    => extension_loaded('openssl'),
-      'Storage writable' => is_writable(__DIR__ . '/storage') || mkdir(__DIR__ . '/storage', 0750, true),
+      'PHP 8.1+'                                => PHP_VERSION_ID >= 80100,
+      'pdo'                                     => extension_loaded('pdo'),
+      'pdo_mysql'                               => extension_loaded('pdo_mysql'),
+      'curl'                                    => extension_loaded('curl'),
+      'json'                                    => extension_loaded('json'),
+      'mbstring'                                => extension_loaded('mbstring'),
+      'openssl'                                 => extension_loaded('openssl'),
+      htmlspecialchars(instT('storage_writable'), ENT_QUOTES, 'UTF-8') => is_writable(__DIR__ . '/storage') || mkdir(__DIR__ . '/storage', 0750, true),
   ];
   foreach ($checks as $label => $pass): ?>
     <div class="check-item">
@@ -321,52 +338,52 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <?php endforeach; ?>
 
   <form method="post">
-    <div class="section-title">Application</div>
+    <div class="section-title"><?= htmlspecialchars(instT('app_section'), ENT_QUOTES, 'UTF-8') ?></div>
     <div class="group">
-      <label>Application Base URL <small style="color:#64748b">(no trailing slash)</small></label>
+      <label><?= htmlspecialchars(instT('app_url_label'), ENT_QUOTES, 'UTF-8') ?> <small style="color:#64748b">(<?= htmlspecialchars(instT('no_trailing_slash'), ENT_QUOTES, 'UTF-8') ?>)</small></label>
       <input type="text" name="app_url"
              value="<?= htmlspecialchars(isset($appUrlInfo) && $appUrlInfo['ok'] ? $appUrlInfo['url'] : ($_POST['app_url'] ?? detectDefaultAppUrl()), ENT_QUOTES, 'UTF-8') ?>"
              placeholder="http://example.com">
-      <small style="color:#64748b">Domain root, subdomain, or subfolder. e.g. https://dev.example.com or https://example.com/devbridge</small>
+      <small style="color:#64748b"><?= htmlspecialchars(instT('app_url_hint'), ENT_QUOTES, 'UTF-8') ?></small>
     </div>
 
-    <div class="section-title">Database</div>
+    <div class="section-title"><?= htmlspecialchars(instT('db_section'), ENT_QUOTES, 'UTF-8') ?></div>
     <div class="group">
-      <label>Host</label>
+      <label><?= htmlspecialchars(instT('db_host'), ENT_QUOTES, 'UTF-8') ?></label>
       <input type="text" name="db_host" value="<?= htmlspecialchars($_POST['db_host'] ?? '127.0.0.1', ENT_QUOTES, 'UTF-8') ?>">
     </div>
     <div class="group">
-      <label>Port</label>
+      <label><?= htmlspecialchars(instT('db_port'), ENT_QUOTES, 'UTF-8') ?></label>
       <input type="text" name="db_port" value="<?= htmlspecialchars($_POST['db_port'] ?? '3306', ENT_QUOTES, 'UTF-8') ?>">
     </div>
     <div class="group">
-      <label>Database Name</label>
+      <label><?= htmlspecialchars(instT('db_name'), ENT_QUOTES, 'UTF-8') ?></label>
       <input type="text" name="db_name" value="<?= htmlspecialchars($_POST['db_name'] ?? 'devbridge', ENT_QUOTES, 'UTF-8') ?>">
     </div>
     <div class="group">
-      <label>DB User</label>
+      <label><?= htmlspecialchars(instT('db_user'), ENT_QUOTES, 'UTF-8') ?></label>
       <input type="text" name="db_user" value="<?= htmlspecialchars($_POST['db_user'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
     </div>
     <div class="group">
-      <label>DB Password</label>
+      <label><?= htmlspecialchars(instT('db_pass'), ENT_QUOTES, 'UTF-8') ?></label>
       <input type="password" name="db_pass">
     </div>
 
-    <div class="section-title">First Admin Account</div>
+    <div class="section-title"><?= htmlspecialchars(instT('admin_section'), ENT_QUOTES, 'UTF-8') ?></div>
     <div class="group">
-      <label>Username</label>
+      <label><?= htmlspecialchars(instT('admin_user'), ENT_QUOTES, 'UTF-8') ?></label>
       <input type="text" name="admin_user" value="<?= htmlspecialchars($_POST['admin_user'] ?? 'admin', ENT_QUOTES, 'UTF-8') ?>">
     </div>
     <div class="group">
-      <label>Password (min 8 chars)</label>
+      <label><?= htmlspecialchars(instT('admin_pass'), ENT_QUOTES, 'UTF-8') ?></label>
       <input type="password" name="admin_pass">
     </div>
     <div class="group">
-      <label>Email (optional)</label>
+      <label><?= htmlspecialchars(instT('admin_email'), ENT_QUOTES, 'UTF-8') ?></label>
       <input type="email" name="admin_email" value="<?= htmlspecialchars($_POST['admin_email'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
     </div>
 
-    <button type="submit" class="btn">Install DevBridge</button>
+    <button type="submit" class="btn"><?= htmlspecialchars(instT('btn_install'), ENT_QUOTES, 'UTF-8') ?></button>
   </form>
 
   <?php endif; ?>

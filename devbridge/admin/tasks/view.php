@@ -168,8 +168,6 @@ function postPRComment(array $task, array $result, \PDO $db): void
 $pageTitle = 'Task #' . $taskId . ': ' . $task['title'];
 $activeNav = 'tasks';
 require APP_ROOT . '/views/layout.php';
-
-function e(string $v): string { return htmlspecialchars($v, ENT_QUOTES, 'UTF-8'); }
 ?>
 
 <?php if ($error): ?><div class="alert alert-danger"><?= e($error) ?></div><?php endif; ?>
