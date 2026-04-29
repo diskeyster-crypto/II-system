@@ -48,6 +48,96 @@ function detectDefaultAppUrl(): string
     return $scheme . '://' . $host . $base;
 }
 
+// -----------------------------------------------------------------------
+// Normalize and validate app_url using parse_url (tolerates common typos)
+// -----------------------------------------------------------------------
+function normalizeAppUrl(string $url): array
+{
+    // Decode HTML entities (e.g. copy-pasted from a browser address bar via HTML page)
+    $url = html_entity_decode($url, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $url = trim($url);
+
+    // Strip UTF-8 BOM
+    $url = preg_replace('/^\xEF\xBB\xBF/', '', $url);
+    // Strip control characters
+    $url = preg_replace('/[\x00-\x1F\x7F]/u', '', (string)$url);
+    // Normalize unicode variants of backslash, semicolon, colon, slash
+    $url = str_replace(["\\", "\u{FF1B}", "\u{FF1A}"], ['/', ';', ':'], (string)$url);
+    $url = str_replace(["\u{FF0F}", "\u{2044}", "\u{2215}"], '/', $url);
+
+    // Fix common typos: http;// https;// http:/ https:/
+    $url = preg_replace('#^\s*(https?)\s*[;:]\s*/\s*/#iu', '$1://', $url);
+    $url = preg_replace('#^\s*(https?)\s*/\s*/#iu',         '$1://', $url);
+    $url = preg_replace('#^\s*(https?)\s*:\s*/(?!/)#iu',    '$1://', $url);
+
+    // If no scheme, prepend current request scheme
+    if ($url !== '' && !preg_match('#^https?://#i', $url)) {
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        $url    = $scheme . '://' . ltrim($url, '/');
+    }
+
+    $url = rtrim($url, '/');
+
+    if ($url === '') {
+        return [
+            'ok'    => false,
+            'url'   => '',
+            'error' => 'Application Base URL is required. Example: http://dev.tredercopis.click',
+        ];
+    }
+
+    $parts = parse_url($url);
+
+    if ($parts === false || empty($parts['scheme']) || empty($parts['host'])) {
+        return [
+            'ok'    => false,
+            'url'   => '',
+            'error' => 'Application Base URL must include a valid domain. Example: http://dev.tredercopis.click',
+        ];
+    }
+
+    $scheme = strtolower((string)$parts['scheme']);
+
+    if (!in_array($scheme, ['http', 'https'], true)) {
+        return [
+            'ok'    => false,
+            'url'   => '',
+            'error' => 'Application Base URL must start with http:// or https://',
+        ];
+    }
+
+    if (isset($parts['query']) && $parts['query'] !== '') {
+        return [
+            'ok'    => false,
+            'url'   => '',
+            'error' => 'Application Base URL must not contain a query string. Remove everything after ?.',
+        ];
+    }
+
+    if (isset($parts['fragment']) && $parts['fragment'] !== '') {
+        return [
+            'ok'    => false,
+            'url'   => '',
+            'error' => 'Application Base URL must not contain a hash fragment. Remove everything after #.',
+        ];
+    }
+
+    $host = strtolower((string)$parts['host']);
+    $port = isset($parts['port']) ? ':' . (int)$parts['port'] : '';
+    $path = isset($parts['path']) ? '/' . trim((string)$parts['path'], '/') : '';
+    if ($path === '/') {
+        $path = '';
+    }
+
+    $normalized = $scheme . '://' . $host . $port . $path;
+
+    return [
+        'ok'    => true,
+        'url'   => $normalized,
+        'error' => null,
+    ];
+}
+
 $reqErrors = checkRequirements();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -59,7 +149,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $dbName     = trim($_POST['db_name']     ?? 'devbridge');
         $dbUser     = trim($_POST['db_user']     ?? '');
         $dbPass     = $_POST['db_pass']          ?? '';
-        $appUrl     = rtrim(trim($_POST['app_url'] ?? ''), '/');
+        $appUrlRaw  = (string)($_POST['app_url'] ?? '');
+        $appUrlInfo = normalizeAppUrl($appUrlRaw);
+        $appUrl     = $appUrlInfo['ok'] ? $appUrlInfo['url'] : rtrim(trim($appUrlRaw), '/');
         $adminUser  = trim($_POST['admin_user']  ?? 'admin');
         $adminPass  = $_POST['admin_pass']       ?? '';
         $adminEmail = trim($_POST['admin_email'] ?? '');
@@ -71,8 +163,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $adminUser)) {
             $errors[] = 'Admin username may only contain letters, digits, underscores, and hyphens.';
         }
-        if (!preg_match('#^https?://[^/?#\s]+(/[^?#\s]*)?$#i', $appUrl)) {
-            $errors[] = 'Application Base URL must be a valid http or https URL without query string or hash.';
+        if (!$appUrlInfo['ok']) {
+            $errors[] = $appUrlInfo['error'];
         }
 
         if (empty($errors)) {
@@ -232,8 +324,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="section-title">Application</div>
     <div class="group">
       <label>Application Base URL <small style="color:#64748b">(no trailing slash)</small></label>
-      <input type="url" name="app_url"
-             value="<?= htmlspecialchars($_POST['app_url'] ?? detectDefaultAppUrl(), ENT_QUOTES, 'UTF-8') ?>"
+      <input type="text" name="app_url"
+             value="<?= htmlspecialchars(isset($appUrlInfo) && $appUrlInfo['ok'] ? $appUrlInfo['url'] : ($_POST['app_url'] ?? detectDefaultAppUrl()), ENT_QUOTES, 'UTF-8') ?>"
              placeholder="http://example.com">
       <small style="color:#64748b">Domain root, subdomain, or subfolder. e.g. https://dev.example.com or https://example.com/devbridge</small>
     </div>
