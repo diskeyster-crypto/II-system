@@ -1,0 +1,20 @@
+<?php
+return [
+    'title'             => 'System Check',
+    'php_ext'           => 'PHP & Extensions',
+    'php_version'       => 'PHP 8.1+',
+    'php_current'       => 'current',
+    'url_constants'     => 'URL & Path Constants',
+    'install_files'     => 'Installation Files',
+    'config_exists'     => 'config/config.php exists',
+    'lock_exists'       => 'storage/installed.lock exists',
+    'database'          => 'Database',
+    'connection'        => 'Connection',
+    'table_prefix'      => 'Table: ',
+    'storage'           => 'Storage Writable',
+    'secrets'           => 'Secrets Configured',
+    'github_token'      => 'GitHub Token',
+    'openrouter_key'    => 'OpenRouter API Key',
+    'configured'        => 'configured (masked)',
+    'not_configured'    => 'not set',
+];

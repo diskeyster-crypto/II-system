@@ -28,37 +28,37 @@ $logs = $stmt->fetchAll();
 
 $types = $db->query('SELECT DISTINCT type FROM logs ORDER BY type')->fetchAll(\PDO::FETCH_COLUMN);
 
-$pageTitle = 'Logs';
+$pageTitle = t('logs.title');
 $activeNav = 'logs';
 require APP_ROOT . '/views/layout.php';
 ?>
 
 <div class="flex gap-2 items-center mb-4">
-  <label class="text-muted text-sm">Filter by type:</label>
+  <label class="text-muted text-sm"><?= e(t('logs.filter_type')) ?></label>
   <select onchange="location='?type='+this.value" style="width:auto">
-    <option value="">All</option>
+    <option value=""><?= e(t('logs.all')) ?></option>
     <?php foreach ($types as $t): ?>
       <option value="<?= htmlspecialchars($t, ENT_QUOTES, 'UTF-8') ?>" <?= $type === $t ? 'selected' : '' ?>>
         <?= htmlspecialchars($t, ENT_QUOTES, 'UTF-8') ?>
       </option>
     <?php endforeach; ?>
   </select>
-  <span class="text-muted text-sm">Page <?= $page ?></span>
+  <span class="text-muted text-sm"><?= e(t('logs.page')) ?> <?= $page ?></span>
 </div>
 
 <?php if (empty($logs)): ?>
-  <div class="card"><p class="text-muted">No logs.</p></div>
+  <div class="card"><p class="text-muted"><?= e(t('logs.no_logs')) ?></p></div>
 <?php else: ?>
 <div class="card">
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
-          <th>Time</th>
-          <th>Type</th>
-          <th>Message</th>
-          <th>Task</th>
-          <th>Project</th>
+          <th><?= e(t('logs.time')) ?></th>
+          <th><?= e(t('logs.type')) ?></th>
+          <th><?= e(t('logs.message')) ?></th>
+          <th><?= e(t('logs.task')) ?></th>
+          <th><?= e(t('logs.project')) ?></th>
         </tr>
       </thead>
       <tbody>
@@ -84,10 +84,10 @@ require APP_ROOT . '/views/layout.php';
 
   <div class="flex gap-2 mt-3">
     <?php if ($page > 1): ?>
-      <a href="?type=<?= urlencode($type) ?>&page=<?= $page - 1 ?>" class="btn btn-secondary btn-sm">← Prev</a>
+      <a href="?type=<?= urlencode($type) ?>&page=<?= $page - 1 ?>" class="btn btn-secondary btn-sm"><?= e(t('common.prev')) ?></a>
     <?php endif; ?>
     <?php if (count($logs) === $per): ?>
-      <a href="?type=<?= urlencode($type) ?>&page=<?= $page + 1 ?>" class="btn btn-secondary btn-sm">Next →</a>
+      <a href="?type=<?= urlencode($type) ?>&page=<?= $page + 1 ?>" class="btn btn-secondary btn-sm"><?= e(t('common.next')) ?></a>
     <?php endif; ?>
   </div>
 </div>

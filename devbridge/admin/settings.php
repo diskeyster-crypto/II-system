@@ -20,6 +20,7 @@ $encryptedKeys = ['openrouter_api_key', 'github_token'];
 $allKeys = [
     'openrouter_api_key', 'openrouter_model', 'ai_temperature', 'max_prompt_chars',
     'github_token', 'github_default_owner', 'webhook_base_url', 'no_auto_merge',
+    'locale',
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -56,13 +57,13 @@ foreach ($allKeys as $key) {
     }
 }
 
-$pageTitle = 'Settings';
+$pageTitle = t('settings.title');
 $activeNav = 'settings';
 require APP_ROOT . '/views/layout.php';
 ?>
 
 <?php if ($success): ?>
-  <div class="alert alert-success">Settings saved successfully.</div>
+  <div class="alert alert-success"><?= e(t('settings.saved')) ?></div>
 <?php endif; ?>
 <?php if ($error): ?>
   <div class="alert alert-danger"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
@@ -71,70 +72,81 @@ require APP_ROOT . '/views/layout.php';
 <form method="post" class="card" style="max-width:660px">
   <?= Csrf::field() ?>
 
-  <h2 class="card-title">AI Provider (OpenRouter)</h2>
+  <h2 class="card-title"><?= e(t('settings.general')) ?></h2>
 
   <div class="form-group">
-    <label>OpenRouter API Key</label>
+    <label><?= e(t('settings.interface_lang')) ?></label>
+    <select name="locale">
+      <option value="ru" <?= ($current['locale'] ?? 'ru') === 'ru' ? 'selected' : '' ?>><?= e(t('settings.lang_ru')) ?></option>
+      <option value="en" <?= ($current['locale'] ?? 'ru') === 'en' ? 'selected' : '' ?>><?= e(t('settings.lang_en')) ?></option>
+    </select>
+  </div>
+
+  <hr class="divider">
+  <h2 class="card-title"><?= e(t('settings.ai_provider')) ?></h2>
+
+  <div class="form-group">
+    <label><?= e(t('settings.openrouter_key')) ?></label>
     <input type="text" name="openrouter_api_key"
            value="<?= htmlspecialchars($current['openrouter_api_key'], ENT_QUOTES, 'UTF-8') ?>"
            placeholder="sk-or-... (leave unchanged to keep existing)">
-    <small class="text-muted">Stored encrypted. Shown masked.</small>
+    <small class="text-muted"><?= e(t('settings.encrypted_note')) ?></small>
   </div>
   <div class="form-group">
-    <label>OpenRouter Model</label>
+    <label><?= e(t('settings.openrouter_model')) ?></label>
     <input type="text" name="openrouter_model"
            value="<?= htmlspecialchars($current['openrouter_model'] ?: 'openai/gpt-4o', ENT_QUOTES, 'UTF-8') ?>"
            placeholder="openai/gpt-4o">
   </div>
   <div class="form-group">
-    <label>AI Temperature (0.0 – 1.0)</label>
+    <label><?= e(t('settings.temperature')) ?></label>
     <input type="number" name="ai_temperature" step="0.05" min="0" max="1"
            value="<?= htmlspecialchars($current['ai_temperature'] ?: '0.2', ENT_QUOTES, 'UTF-8') ?>">
   </div>
   <div class="form-group">
-    <label>Max Prompt Characters</label>
+    <label><?= e(t('settings.max_prompt')) ?></label>
     <input type="number" name="max_prompt_chars" min="4000" max="200000"
            value="<?= htmlspecialchars($current['max_prompt_chars'] ?: '32000', ENT_QUOTES, 'UTF-8') ?>">
   </div>
 
   <hr class="divider">
-  <h2 class="card-title">GitHub</h2>
+  <h2 class="card-title"><?= e(t('settings.github')) ?></h2>
 
   <div class="form-group">
-    <label>GitHub Token</label>
+    <label><?= e(t('settings.github_token')) ?></label>
     <input type="text" name="github_token"
            value="<?= htmlspecialchars($current['github_token'], ENT_QUOTES, 'UTF-8') ?>"
            placeholder="ghp_... (leave unchanged to keep existing)">
-    <small class="text-muted">Stored encrypted. Shown masked.</small>
+    <small class="text-muted"><?= e(t('settings.encrypted_note')) ?></small>
   </div>
   <div class="form-group">
-    <label>Default GitHub Owner (user or org)</label>
+    <label><?= e(t('settings.github_owner')) ?></label>
     <input type="text" name="github_default_owner"
            value="<?= htmlspecialchars($current['github_default_owner'], ENT_QUOTES, 'UTF-8') ?>">
   </div>
 
   <hr class="divider">
-  <h2 class="card-title">Webhooks</h2>
+  <h2 class="card-title"><?= e(t('settings.webhooks')) ?></h2>
 
   <div class="form-group">
-    <label>Webhook Base URL</label>
+    <label><?= e(t('settings.webhook_url')) ?></label>
     <input type="url" name="webhook_base_url"
            value="<?= htmlspecialchars($current['webhook_base_url'], ENT_QUOTES, 'UTF-8') ?>"
            placeholder="https://yourdomain.com/devbridge">
-    <small class="text-muted">Full URL up to devbridge root. Webhook endpoint will be appended.</small>
+    <small class="text-muted"><?= e(t('settings.webhook_hint')) ?></small>
   </div>
 
   <hr class="divider">
-  <h2 class="card-title">Safety</h2>
+  <h2 class="card-title"><?= e(t('settings.safety')) ?></h2>
 
   <div class="form-group">
     <label>
       <input type="checkbox" name="no_auto_merge" value="1" <?= $current['no_auto_merge'] ? 'checked' : '' ?>>
-      &nbsp;Global No-Auto-Merge (always required – do not disable)
+      &nbsp;<?= e(t('settings.no_auto_merge')) ?>
     </label>
   </div>
 
-  <button type="submit" class="btn btn-primary">Save Settings</button>
+  <button type="submit" class="btn btn-primary"><?= e(t('settings.btn_save')) ?></button>
 </form>
 
 <?php require APP_ROOT . '/views/layout_footer.php'; ?>

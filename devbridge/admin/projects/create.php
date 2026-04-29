@@ -25,9 +25,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $model   = trim($_POST['default_ai_model'] ?? '');
     $maxPar  = max(1, (int)($_POST['max_parallel_tasks'] ?? 3));
 
-    if (!$name) $error = 'Name is required.';
-    elseif (!$code) $error = 'Code is required.';
-    elseif (!preg_match('/^[a-zA-Z0-9_\-]+$/', $code)) $error = 'Code may only contain letters, digits, underscores, and hyphens.';
+    if (!$name) $error = t('projects.err_name');
+    elseif (!$code) $error = t('projects.err_code');
+    elseif (!preg_match('/^[a-zA-Z0-9_\-]+$/', $code)) $error = t('projects.err_code_chars');
 
     if (!$error) {
         try {
@@ -45,7 +45,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$pageTitle = 'New Project';
+$pageTitle = t('projects.new');
 $activeNav = 'projects';
 require APP_ROOT . '/views/layout.php';
 ?>
@@ -56,44 +56,44 @@ require APP_ROOT . '/views/layout.php';
   <?= Csrf::field() ?>
 
   <div class="form-group">
-    <label>Project Name *</label>
+    <label><?= e(t('projects.name')) ?> *</label>
     <input type="text" name="name" required value="<?= htmlspecialchars($_POST['name'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
   </div>
   <div class="form-group">
-    <label>Code (slug) *</label>
+    <label><?= e(t('projects.code')) ?> *</label>
     <input type="text" name="code" required value="<?= htmlspecialchars($_POST['code'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="my-project">
-    <small class="text-muted">Used in branch names and roadmap references.</small>
+    <small class="text-muted"><?= e(t('projects.code_hint')) ?></small>
   </div>
   <div class="form-group">
-    <label>Description</label>
+    <label><?= e(t('projects.description')) ?></label>
     <textarea name="description"><?= htmlspecialchars($_POST['description'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
   </div>
   <div class="form-group">
-    <label>Business Goal</label>
+    <label><?= e(t('projects.business_goal')) ?></label>
     <textarea name="business_goal"><?= htmlspecialchars($_POST['business_goal'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
   </div>
   <div class="form-group">
-    <label>Tech Stack</label>
+    <label><?= e(t('projects.tech_stack')) ?></label>
     <textarea name="tech_stack" style="min-height:80px"><?= htmlspecialchars($_POST['tech_stack'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
-    <small class="text-muted">Included in AI prompts and GitHub issues.</small>
+    <small class="text-muted"><?= e(t('projects.tech_stack_hint')) ?></small>
   </div>
   <div class="form-group">
-    <label>Global Rules (included in all prompts)</label>
+    <label><?= e(t('projects.global_rules')) ?></label>
     <textarea name="global_rules" style="min-height:120px"><?= htmlspecialchars($_POST['global_rules'] ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
-    <small class="text-muted">E.g. "Use PDO. No shell_exec. PHP 8.1+."</small>
+    <small class="text-muted"><?= e(t('projects.global_rules_hint')) ?></small>
   </div>
   <div class="form-group">
-    <label>Default AI Model (optional override)</label>
+    <label><?= e(t('projects.ai_model')) ?></label>
     <input type="text" name="default_ai_model" value="<?= htmlspecialchars($_POST['default_ai_model'] ?? '', ENT_QUOTES, 'UTF-8') ?>" placeholder="openai/gpt-4o">
   </div>
   <div class="form-group">
-    <label>Max Parallel Tasks</label>
+    <label><?= e(t('projects.max_parallel')) ?></label>
     <input type="number" name="max_parallel_tasks" min="1" max="20" value="<?= (int)($_POST['max_parallel_tasks'] ?? 3) ?>">
   </div>
 
   <div class="flex gap-2">
-    <button type="submit" class="btn btn-primary">Create Project</button>
-    <a href="<?= BASE_URL ?>/admin/projects/" class="btn btn-secondary">Cancel</a>
+    <button type="submit" class="btn btn-primary"><?= e(t('projects.btn_create')) ?></button>
+    <a href="<?= BASE_URL ?>/admin/projects/" class="btn btn-secondary"><?= e(t('common.cancel')) ?></a>
   </div>
 </form>
 

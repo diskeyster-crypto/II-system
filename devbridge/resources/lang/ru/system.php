@@ -1,0 +1,20 @@
+<?php
+return [
+    'title'             => 'Проверка системы',
+    'php_ext'           => 'PHP и расширения',
+    'php_version'       => 'PHP 8.1+',
+    'php_current'       => 'текущая версия',
+    'url_constants'     => 'URL и константы путей',
+    'install_files'     => 'Файлы установки',
+    'config_exists'     => 'config/config.php существует',
+    'lock_exists'       => 'storage/installed.lock существует',
+    'database'          => 'База данных',
+    'connection'        => 'Подключение',
+    'table_prefix'      => 'Таблица: ',
+    'storage'           => 'Хранилище (доступность для записи)',
+    'secrets'           => 'Секреты',
+    'github_token'      => 'Токен GitHub',
+    'openrouter_key'    => 'Ключ OpenRouter',
+    'configured'        => 'настроен (скрыт)',
+    'not_configured'    => 'не настроен',
+];

@@ -42,7 +42,7 @@ try {
     $recentLogs  = [];
 }
 
-$pageTitle = 'Dashboard';
+$pageTitle = t('menu.dashboard');
 $activeNav = 'dashboard';
 require APP_ROOT . '/views/layout.php';
 
@@ -72,43 +72,43 @@ function statusBadge(string $status): string {
 <div class="stats-row">
   <div class="stat-card">
     <div class="stat-value"><?= $stats['projects'] ?></div>
-    <div class="stat-label">Projects</div>
+    <div class="stat-label"><?= e(t('menu.projects')) ?></div>
   </div>
   <div class="stat-card">
     <div class="stat-value"><?= $stats['repositories'] ?></div>
-    <div class="stat-label">Repositories</div>
+    <div class="stat-label"><?= e(t('menu.repositories')) ?></div>
   </div>
   <div class="stat-card">
     <div class="stat-value"><?= $stats['active_tasks'] ?></div>
-    <div class="stat-label">Active Dev Tasks</div>
+    <div class="stat-label"><?= e(t('menu.tasks')) ?></div>
   </div>
   <div class="stat-card">
     <div class="stat-value" style="color:var(--warning)"><?= $stats['waiting'] ?></div>
-    <div class="stat-label">Waiting for Operator</div>
+    <div class="stat-label"><?= e(t('statuses.waiting_for_operator')) ?></div>
   </div>
   <div class="stat-card">
     <div class="stat-value" style="color:var(--accent)"><?= $stats['prs_reviewing'] ?></div>
-    <div class="stat-label">PRs Under Review</div>
+    <div class="stat-label"><?= e(t('statuses.reviewing')) ?></div>
   </div>
 </div>
 
 <div class="flex gap-3" style="align-items:flex-start">
   <div style="flex:1.5">
     <div class="card">
-      <div class="card-title">Recent Dev Tasks</div>
+      <div class="card-title"><?= e(t('common.recent_tasks')) ?></div>
       <?php if (empty($recentTasks)): ?>
-        <p class="text-muted text-sm">No tasks yet.</p>
+        <p class="text-muted text-sm"><?= e(t('common.no_tasks')) ?></p>
       <?php else: ?>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
               <th>#</th>
-              <th>Title</th>
-              <th>Project</th>
-              <th>Status</th>
-              <th>Priority</th>
-              <th>Created</th>
+              <th><?= e(t('tasks.title_label')) ?></th>
+              <th><?= e(t('tasks.project')) ?></th>
+              <th><?= e(t('common.status')) ?></th>
+              <th><?= e(t('tasks.priority')) ?></th>
+              <th><?= e(t('common.created_at')) ?></th>
             </tr>
           </thead>
           <tbody>
@@ -131,9 +131,9 @@ function statusBadge(string $status): string {
 
   <div style="flex:1">
     <div class="card">
-      <div class="card-title">Recent Logs</div>
+      <div class="card-title"><?= e(t('common.recent_logs')) ?></div>
       <?php if (empty($recentLogs)): ?>
-        <p class="text-muted text-sm">No logs yet.</p>
+        <p class="text-muted text-sm"><?= e(t('common.no_logs')) ?></p>
       <?php else: ?>
         <?php foreach (array_slice($recentLogs, 0, 15) as $log): ?>
           <div style="padding:6px 0;border-bottom:1px solid var(--border)">
@@ -142,7 +142,7 @@ function statusBadge(string $status): string {
             <div class="text-muted" style="font-size:0.75rem"><?= htmlspecialchars(substr($log['created_at'], 0, 16), ENT_QUOTES, 'UTF-8') ?></div>
           </div>
         <?php endforeach; ?>
-        <div class="mt-3"><a href="<?= BASE_URL ?>/admin/logs.php" class="btn btn-secondary btn-sm">View all logs</a></div>
+        <div class="mt-3"><a href="<?= BASE_URL ?>/admin/logs.php" class="btn btn-secondary btn-sm"><?= e(t('logs.view_all')) ?></a></div>
       <?php endif; ?>
     </div>
   </div>

@@ -25,20 +25,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Location: ' . BASE_URL . '/admin/dashboard.php');
         exit;
     }
-    $error = 'Invalid username or password.';
+    $error = t('auth.invalid');
 }
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?= \DevBridge\Core\I18n::getLocale() ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DevBridge – Login</title>
+<title><?= e(t('auth.title')) ?></title>
 <link rel="stylesheet" href="<?= BASE_URL ?>/public/css/app.css">
 </head>
 <body class="auth-page">
 <div class="auth-card">
   <div class="auth-logo">⚙ DevBridge</div>
-  <p class="auth-subtitle">AI Development Management System</p>
+  <p class="auth-subtitle"><?= e(t('auth.subtitle')) ?></p>
 
   <?php if ($error): ?>
     <div class="alert alert-danger"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
@@ -47,15 +47,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <form method="post" class="auth-form">
     <?= Csrf::field() ?>
     <div class="form-group">
-      <label for="username">Username</label>
+      <label for="username"><?= e(t('auth.username')) ?></label>
       <input type="text" id="username" name="username" autocomplete="username" autofocus required
              value="<?= htmlspecialchars($_POST['username'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
     </div>
     <div class="form-group">
-      <label for="password">Password</label>
+      <label for="password"><?= e(t('auth.password')) ?></label>
       <input type="password" id="password" name="password" autocomplete="current-password" required>
     </div>
-    <button type="submit" class="btn btn-primary btn-full">Sign In</button>
+    <button type="submit" class="btn btn-primary btn-full"><?= e(t('auth.sign_in')) ?></button>
   </form>
 </div>
 </body>

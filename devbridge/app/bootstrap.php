@@ -76,3 +76,26 @@ if (!defined('BASE_URL')) {
 
     define('BASE_URL', $baseUrl);
 }
+
+// Load helpers (t(), e() etc.)
+require_once __DIR__ . '/helpers.php';
+
+// Initialize i18n from config
+use DevBridge\Core\I18n;
+$_i18nConfig = [];
+if (file_exists(CONFIG_PATH . '/config.php')) {
+    try { $_i18nConfig = require CONFIG_PATH . '/config.php'; } catch (\Throwable) {}
+}
+I18n::setLocale((string)($_i18nConfig['locale'] ?? 'ru'));
+I18n::setFallback((string)($_i18nConfig['fallback_locale'] ?? 'en'));
+unset($_i18nConfig);
+
+// Override locale from DB settings if installed
+if (file_exists(STORAGE_PATH . '/installed.lock')) {
+    try {
+        $dbLocale = \DevBridge\Core\Settings::get('locale');
+        if ($dbLocale) {
+            I18n::setLocale($dbLocale);
+        }
+    } catch (\Throwable) {}
+}

@@ -9,21 +9,21 @@ use DevBridge\Core\Csrf;
 
 $adminUser = Auth::adminUsername();
 $nav = [
-    'dashboard'          => ['icon' => '🏠', 'label' => 'Dashboard',          'href' => BASE_URL . '/admin/dashboard.php'],
-    'projects'           => ['icon' => '📁', 'label' => 'Projects',            'href' => BASE_URL . '/admin/projects/'],
-    'repositories'       => ['icon' => '🗄',  'label' => 'Repositories',        'href' => BASE_URL . '/admin/repositories/'],
-    'roadmaps'           => ['icon' => '🗺',  'label' => 'Roadmaps',            'href' => BASE_URL . '/admin/roadmaps/'],
-    'board'              => ['icon' => '📋', 'label' => 'Task Board',           'href' => BASE_URL . '/admin/tasks/board.php'],
-    'tasks'              => ['icon' => '⚡', 'label' => 'Dev Tasks',            'href' => BASE_URL . '/admin/tasks/'],
-    'pull-requests'      => ['icon' => '🔀', 'label' => 'Pull Requests',        'href' => BASE_URL . '/admin/pull-requests.php'],
-    'reviews'            => ['icon' => '🔍', 'label' => 'Reviews',              'href' => BASE_URL . '/admin/reviews/'],
-    'operator-decisions' => ['icon' => '⚠', 'label' => 'Operator Decisions',   'href' => BASE_URL . '/admin/operator-decisions.php'],
-    'settings'           => ['icon' => '⚙', 'label' => 'Settings',             'href' => BASE_URL . '/admin/settings.php'],
-    'logs'               => ['icon' => '📄', 'label' => 'Logs',                 'href' => BASE_URL . '/admin/logs.php'],
-    'system-check'       => ['icon' => '🩺', 'label' => 'System Check',         'href' => BASE_URL . '/admin/system-check.php'],
+    'dashboard'          => ['icon' => '🏠', 'label' => t('menu.dashboard'),          'href' => BASE_URL . '/admin/dashboard.php'],
+    'projects'           => ['icon' => '📁', 'label' => t('menu.projects'),            'href' => BASE_URL . '/admin/projects/'],
+    'repositories'       => ['icon' => '🗄',  'label' => t('menu.repositories'),        'href' => BASE_URL . '/admin/repositories/'],
+    'roadmaps'           => ['icon' => '🗺',  'label' => t('menu.roadmaps'),            'href' => BASE_URL . '/admin/roadmaps/'],
+    'board'              => ['icon' => '📋', 'label' => t('menu.board'),               'href' => BASE_URL . '/admin/tasks/board.php'],
+    'tasks'              => ['icon' => '⚡', 'label' => t('menu.tasks'),               'href' => BASE_URL . '/admin/tasks/'],
+    'pull-requests'      => ['icon' => '🔀', 'label' => t('menu.pull_requests'),       'href' => BASE_URL . '/admin/pull-requests.php'],
+    'reviews'            => ['icon' => '🔍', 'label' => t('menu.reviews'),             'href' => BASE_URL . '/admin/reviews/'],
+    'operator-decisions' => ['icon' => '⚠', 'label' => t('menu.operator_decisions'),  'href' => BASE_URL . '/admin/operator-decisions.php'],
+    'settings'           => ['icon' => '⚙', 'label' => t('menu.settings'),            'href' => BASE_URL . '/admin/settings.php'],
+    'logs'               => ['icon' => '📄', 'label' => t('menu.logs'),               'href' => BASE_URL . '/admin/logs.php'],
+    'system-check'       => ['icon' => '🩺', 'label' => t('menu.system_check'),       'href' => BASE_URL . '/admin/system-check.php'],
 ];
 ?><!DOCTYPE html>
-<html lang="en">
+<html lang="<?= e(DevBridge\Core\I18n::getLocale()) ?>">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -46,7 +46,7 @@ $nav = [
       <span class="nav-user">👤 <?= htmlspecialchars($adminUser, ENT_QUOTES, 'UTF-8') ?></span>
       <form method="post" action="<?= BASE_URL ?>/logout.php" style="display:inline">
         <?= Csrf::field() ?>
-        <button type="submit" class="btn-logout">Logout</button>
+        <button type="submit" class="btn-logout"><?= e(t('menu.logout')) ?></button>
       </form>
     </div>
   </aside>

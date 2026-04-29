@@ -78,7 +78,7 @@ if ($dbConnected) {
     }
 }
 
-$pageTitle = 'System Check';
+$pageTitle = t('system.title');
 $activeNav = 'system-check';
 require APP_ROOT . '/views/layout.php';
 
@@ -91,15 +91,15 @@ function checkRow(string $label, bool $ok, string $detail = ''): void
 ?>
 
 <div class="card" style="max-width:760px">
-  <div class="card-title">PHP &amp; Extensions</div>
+  <div class="card-title"><?= e(t('system.php_ext')) ?></div>
   <table style="width:100%;border-collapse:collapse">
-    <?php checkRow('PHP 8.1+', $phpOk, 'current: ' . $phpVersion); ?>
+    <?php checkRow(t('system.php_version'), $phpOk, t('system.php_current') . ': ' . $phpVersion); ?>
     <?php foreach ($extStatus as $ext => $ok): checkRow($ext, $ok); endforeach; ?>
   </table>
 </div>
 
 <div class="card" style="max-width:760px;margin-top:16px">
-  <div class="card-title">URL &amp; Path Constants</div>
+  <div class="card-title"><?= e(t('system.url_constants')) ?></div>
   <table style="width:100%;border-collapse:collapse">
     <tr><td style="color:#94a3b8;font-size:0.85rem;width:160px">BASE_URL</td><td><?= htmlspecialchars(BASE_URL, ENT_QUOTES, 'UTF-8') ?></td></tr>
     <tr><td style="color:#94a3b8;font-size:0.85rem">BASE_PATH</td><td><?= htmlspecialchars(BASE_PATH, ENT_QUOTES, 'UTF-8') ?></td></tr>
@@ -111,35 +111,35 @@ function checkRow(string $label, bool $ok, string $detail = ''): void
 </div>
 
 <div class="card" style="max-width:760px;margin-top:16px">
-  <div class="card-title">Installation Files</div>
+  <div class="card-title"><?= e(t('system.install_files')) ?></div>
   <table style="width:100%;border-collapse:collapse">
-    <?php checkRow('config/config.php exists', $configExists); ?>
-    <?php checkRow('storage/installed.lock exists', $lockExists); ?>
+    <?php checkRow(t('system.config_exists'), $configExists); ?>
+    <?php checkRow(t('system.lock_exists'), $lockExists); ?>
   </table>
 </div>
 
 <div class="card" style="max-width:760px;margin-top:16px">
-  <div class="card-title">Database</div>
+  <div class="card-title"><?= e(t('system.database')) ?></div>
   <table style="width:100%;border-collapse:collapse">
-    <?php checkRow('Connection', $dbConnected, $dbError ?: ''); ?>
+    <?php checkRow(t('system.connection'), $dbConnected, $dbError ?: ''); ?>
     <?php if ($dbConnected): ?>
-      <?php foreach ($tableStatus as $tbl => $ok): checkRow('Table: ' . $tbl, $ok); endforeach; ?>
+      <?php foreach ($tableStatus as $tbl => $ok): checkRow(t('system.table_prefix') . $tbl, $ok); endforeach; ?>
     <?php endif; ?>
   </table>
 </div>
 
 <div class="card" style="max-width:760px;margin-top:16px">
-  <div class="card-title">Storage Writable</div>
+  <div class="card-title"><?= e(t('system.storage')) ?></div>
   <table style="width:100%;border-collapse:collapse">
     <?php foreach ($storageStatus as $label => $ok): checkRow('storage/' . $label, $ok); endforeach; ?>
   </table>
 </div>
 
 <div class="card" style="max-width:760px;margin-top:16px">
-  <div class="card-title">Secrets Configured</div>
+  <div class="card-title"><?= e(t('system.secrets')) ?></div>
   <table style="width:100%;border-collapse:collapse">
-    <?php checkRow('GitHub Token', $githubConfigured, $githubConfigured ? 'configured (masked)' : 'not set'); ?>
-    <?php checkRow('OpenRouter API Key', $openrouterConfigured, $openrouterConfigured ? 'configured (masked)' : 'not set'); ?>
+    <?php checkRow(t('system.github_token'), $githubConfigured, $githubConfigured ? t('system.configured') : t('system.not_configured')); ?>
+    <?php checkRow(t('system.openrouter_key'), $openrouterConfigured, $openrouterConfigured ? t('system.configured') : t('system.not_configured')); ?>
   </table>
 </div>
 
