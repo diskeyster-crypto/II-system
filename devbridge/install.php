@@ -226,6 +226,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt = $pdo->prepare('INSERT INTO admins (username, password_hash, email) VALUES (?, ?, ?)');
                 $stmt->execute([$adminUser, $hash, $adminEmail]);
 
+                // Seed default settings (Gemini provider, safe no-auto-merge)
+                $defaultSettings = [
+                    'ai_provider'           => 'gemini',
+                    'ai_profile'            => 'balanced',
+                    'gemini_economy_model'  => 'gemini-2.5-flash-lite',
+                    'gemini_balanced_model' => 'gemini-2.5-flash',
+                    'gemini_strong_model'   => 'gemini-2.5-pro',
+                    'gemini_json_repair_model' => 'gemini-2.5-flash-lite',
+                    'planner_temperature'   => '0.4',
+                    'critic_temperature'    => '0.2',
+                    'reviewer_temperature'  => '0.1',
+                    'max_output_tokens'     => '8192',
+                    'max_prompt_chars'      => '32000',
+                    'no_auto_merge'         => '1',
+                ];
+                $seedStmt = $pdo->prepare(
+                    'INSERT IGNORE INTO settings (key_name, value) VALUES (?, ?)'
+                );
+                foreach ($defaultSettings as $k => $v) {
+                    $seedStmt->execute([$k, $v]);
+                }
+
                 // Generate app secret
                 $appSecret = bin2hex(random_bytes(32));
 

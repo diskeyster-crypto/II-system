@@ -10,7 +10,7 @@ use DevBridge\Core\Database;
 use DevBridge\Core\Logger;
 use DevBridge\Services\GitHubService;
 use DevBridge\Services\GPTCodeReviewer;
-use DevBridge\AI\OpenRouterClient;
+use DevBridge\AI\AiProviderFactory;
 
 Auth::requireLogin();
 
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         } elseif ($action === 'gpt_review') {
             try {
-                $ai       = new OpenRouterClient();
+                $ai       = AiProviderFactory::make();
                 $reviewer = new GPTCodeReviewer($ai);
                 $result   = $reviewer->review($taskId);
                 $db->prepare('INSERT INTO operator_decisions (task_id, admin_id, action, notes) VALUES (?, ?, "requested_review", ?)')->execute([$taskId, Auth::adminId(), 'Operator requested another GPT review.']);

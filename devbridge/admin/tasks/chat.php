@@ -9,7 +9,7 @@ use DevBridge\Core\Csrf;
 use DevBridge\Core\Database;
 use DevBridge\Core\Settings;
 use DevBridge\Core\Logger;
-use DevBridge\AI\OpenRouterClient;
+use DevBridge\AI\AiProviderFactory;
 
 Auth::requireLogin();
 
@@ -60,7 +60,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             // Build GPT context
             try {
-                $ai      = OpenRouterClient::forPlanner();
+                $ai      = AiProviderFactory::forPlanner();
                 $gptMsgs = buildGptMessages($task, $messages, $userMsg, $db);
                 $reply   = $ai->chat($gptMsgs);
 
@@ -97,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($action === 'generate_spec') {
         // Ask planner to generate the final spec as structured JSON
         try {
-            $ai      = OpenRouterClient::forPlanner();
+            $ai      = AiProviderFactory::forPlanner();
             $gptMsgs = buildGptMessages($task, $messages, 'Generate the Final Task Spec now as structured JSON plus the ===FINAL_TASK_SPEC=== marker. Include all required sections.', $db);
             $reply   = $ai->chat($gptMsgs);
 

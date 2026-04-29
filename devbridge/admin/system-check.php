@@ -8,7 +8,7 @@ use DevBridge\Core\Auth;
 use DevBridge\Core\Csrf;
 use DevBridge\Core\Database;
 use DevBridge\Core\Settings;
-use DevBridge\AI\OpenRouterClient;
+use DevBridge\AI\GeminiClient;
 use DevBridge\Services\GitHubService;
 use DevBridge\Core\Logger;
 
@@ -23,15 +23,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     Csrf::verify();
     $action = $_POST['action'] ?? '';
 
-    if ($action === 'test_openrouter') {
+    if ($action === 'test_gemini') {
         try {
-            $ai    = new OpenRouterClient();
-            $reply = $ai->chat([['role' => 'user', 'content' => 'Respond with exactly: OK']]);
-            $testResult['openrouter'] = ['ok' => true, 'msg' => t('system.openrouter_ok') . ' (' . e(trim(substr($reply, 0, 80))) . ')'];
-            Logger::log('ai_request', 'System check: OpenRouter test OK');
+            $ai     = new GeminiClient();
+            $result = $ai->chatJson([
+                ['role' => 'system', 'content' => 'You are a health check endpoint. Return JSON only.'],
+                ['role' => 'user',   'content' => 'Return {"ok":true,"provider":"gemini"}'],
+            ]);
+            if (!empty($result['ok'])) {
+                $testResult['gemini'] = ['ok' => true, 'msg' => t('system.gemini_ok')];
+            } else {
+                $testResult['gemini'] = ['ok' => false, 'msg' => t('system.gemini_fail') . ': unexpected response'];
+            }
+            Logger::log('ai_request', 'System check: Gemini test OK');
         } catch (\Throwable $e) {
-            $testResult['openrouter'] = ['ok' => false, 'msg' => t('system.openrouter_fail') . ': ' . $e->getMessage()];
-            Logger::log('error', 'System check: OpenRouter test failed: ' . $e->getMessage());
+            $testResult['gemini'] = ['ok' => false, 'msg' => t('system.gemini_fail') . ': ' . $e->getMessage()];
+            Logger::log('error', 'System check: Gemini test failed: ' . $e->getMessage());
         }
     } elseif ($action === 'test_github') {
         try {
@@ -98,8 +105,8 @@ foreach ($storageDirs as $sub) {
 }
 
 // Secrets configured (show only yes/no, never the value)
-$githubConfigured      = false;
-$openrouterConfigured  = false;
+$githubConfigured  = false;
+$geminiConfigured  = false;
 if ($dbConnected) {
     try {
         $stmt = $db->prepare("SELECT value FROM settings WHERE key_name = ? LIMIT 1");
@@ -107,9 +114,9 @@ if ($dbConnected) {
         $row = $stmt->fetch();
         $githubConfigured = !empty($row['value']);
 
-        $stmt->execute(['openrouter_api_key']);
+        $stmt->execute(['gemini_api_key']);
         $row = $stmt->fetch();
-        $openrouterConfigured = !empty($row['value']);
+        $geminiConfigured = !empty($row['value']);
     } catch (\Throwable) {
         // ignore
     }
@@ -176,7 +183,20 @@ function checkRow(string $label, bool $ok, string $detail = ''): void
   <div class="card-title"><?= e(t('system.secrets')) ?></div>
   <table style="width:100%;border-collapse:collapse">
     <?php checkRow(t('system.github_token'), $githubConfigured, $githubConfigured ? t('system.configured') : t('system.not_configured')); ?>
-    <?php checkRow(t('system.openrouter_key'), $openrouterConfigured, $openrouterConfigured ? t('system.configured') : t('system.not_configured')); ?>
+    <?php checkRow(t('system.gemini_key'), $geminiConfigured, $geminiConfigured ? t('system.configured') : t('system.not_configured')); ?>
+  </table>
+</div>
+
+<!-- AI info -->
+<div class="card" style="max-width:760px;margin-top:16px">
+  <div class="card-title"><?= e(t('system.ai_models')) ?></div>
+  <table style="width:100%;border-collapse:collapse">
+    <tr><td style="color:var(--text-muted);font-size:0.85rem;width:160px"><?= e(t('system.ai_provider_row')) ?></td><td>Gemini</td></tr>
+    <tr><td style="color:var(--text-muted);font-size:0.85rem"><?= e(t('system.ai_profile_row')) ?></td><td><?= htmlspecialchars(Settings::get('ai_profile') ?: 'balanced', ENT_QUOTES, 'UTF-8') ?></td></tr>
+    <tr><td style="color:var(--text-muted);font-size:0.85rem">Economy</td><td><code><?= htmlspecialchars(Settings::get('gemini_economy_model') ?: 'gemini-2.5-flash-lite', ENT_QUOTES, 'UTF-8') ?></code></td></tr>
+    <tr><td style="color:var(--text-muted);font-size:0.85rem">Balanced</td><td><code><?= htmlspecialchars(Settings::get('gemini_balanced_model') ?: 'gemini-2.5-flash', ENT_QUOTES, 'UTF-8') ?></code></td></tr>
+    <tr><td style="color:var(--text-muted);font-size:0.85rem">Strong</td><td><code><?= htmlspecialchars(Settings::get('gemini_strong_model') ?: 'gemini-2.5-pro', ENT_QUOTES, 'UTF-8') ?></code></td></tr>
+    <tr><td style="color:var(--text-muted);font-size:0.85rem">JSON repair</td><td><code><?= htmlspecialchars(Settings::get('gemini_json_repair_model') ?: 'gemini-2.5-flash-lite', ENT_QUOTES, 'UTF-8') ?></code></td></tr>
   </table>
 </div>
 
@@ -195,8 +215,8 @@ function checkRow(string $label, bool $ok, string $detail = ''): void
   <div class="flex gap-2 mt-2 flex-wrap">
     <form method="post" style="display:inline">
       <?= Csrf::field() ?>
-      <button type="submit" name="action" value="test_openrouter" class="btn btn-secondary btn-sm">
-        🤖 <?= e(t('system.test_openrouter')) ?>
+      <button type="submit" name="action" value="test_gemini" class="btn btn-secondary btn-sm">
+        🤖 <?= e(t('system.test_gemini')) ?>
       </button>
     </form>
     <form method="post" style="display:inline">

@@ -13,7 +13,7 @@ use DevBridge\Services\GitHubService;
 use DevBridge\Services\ConflictDetector;
 use DevBridge\Services\PRDiffFetcher;
 use DevBridge\Services\GPTCodeReviewer;
-use DevBridge\AI\OpenRouterClient;
+use DevBridge\AI\AiProviderFactory;
 
 Auth::requireLogin();
 
@@ -88,7 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     } elseif ($action === 'gpt_review') {
         try {
-            $ai       = OpenRouterClient::forReviewer();
+            $ai       = AiProviderFactory::forReviewer();
             $reviewer = new GPTCodeReviewer($ai);
             $result   = $reviewer->review($taskId);
             $status   = $result['status'] ?? 'unknown';

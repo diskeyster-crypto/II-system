@@ -7,7 +7,7 @@ require APP_ROOT . '/app/bootstrap.php';
 use DevBridge\Core\Auth;
 use DevBridge\Core\Csrf;
 use DevBridge\Core\Database;
-use DevBridge\AI\OpenRouterClient;
+use DevBridge\AI\AiProviderFactory;
 use DevBridge\Services\GitHubService;
 use DevBridge\Core\Logger;
 
@@ -148,7 +148,7 @@ The roadmap must cover the DevBridge v2 self-upgrade workflow:
 Return ONLY valid JSON, no explanation, no markdown wrapper.
 SYS;
 
-                $ai     = OpenRouterClient::forPlanner();
+                $ai     = AiProviderFactory::forPlanner();
                 $result = $ai->chatJsonWithRepair([
                     ['role' => 'system', 'content' => $systemMsg],
                     ['role' => 'user',   'content' => 'Generate the DevBridge v2 roadmap now.'],
