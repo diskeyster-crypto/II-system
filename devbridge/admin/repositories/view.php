@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-define('APP_ROOT', dirname(dirname(dirname(__DIR__))));
+define('APP_ROOT', dirname(dirname(__DIR__)));
 require APP_ROOT . '/app/bootstrap.php';
 
 use DevBridge\Core\Auth;
