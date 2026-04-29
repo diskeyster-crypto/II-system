@@ -20,6 +20,7 @@ $nav = [
     'operator-decisions' => ['icon' => '⚠', 'label' => 'Operator Decisions',   'href' => BASE_URL . '/admin/operator-decisions.php'],
     'settings'           => ['icon' => '⚙', 'label' => 'Settings',             'href' => BASE_URL . '/admin/settings.php'],
     'logs'               => ['icon' => '📄', 'label' => 'Logs',                 'href' => BASE_URL . '/admin/logs.php'],
+    'system-check'       => ['icon' => '🩺', 'label' => 'System Check',         'href' => BASE_URL . '/admin/system-check.php'],
 ];
 ?><!DOCTYPE html>
 <html lang="en">

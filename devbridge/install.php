@@ -17,7 +17,6 @@ if (file_exists(LOCK_FILE)) {
 
 $errors   = [];
 $success  = false;
-$step     = 'check';
 
 // -----------------------------------------------------------------------
 // Requirement checks
@@ -36,19 +35,33 @@ function checkRequirements(): array
     return $issues;
 }
 
+// -----------------------------------------------------------------------
+// Auto-detect default app_url
+// -----------------------------------------------------------------------
+function detectDefaultAppUrl(): string
+{
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host   = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $script = str_replace('\\', '/', $_SERVER['SCRIPT_NAME'] ?? '/install.php');
+    $dir    = dirname($script);
+    $base   = ($dir === '/' || $dir === '.') ? '' : rtrim($dir, '/');
+    return $scheme . '://' . $host . $base;
+}
+
 $reqErrors = checkRequirements();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!empty($reqErrors)) {
         $errors = $reqErrors;
     } else {
-        $dbHost   = trim($_POST['db_host']   ?? '127.0.0.1');
-        $dbPort   = trim($_POST['db_port']   ?? '3306');
-        $dbName   = trim($_POST['db_name']   ?? 'devbridge');
-        $dbUser   = trim($_POST['db_user']   ?? '');
-        $dbPass   = $_POST['db_pass']        ?? '';
-        $adminUser = trim($_POST['admin_user'] ?? 'admin');
-        $adminPass = $_POST['admin_pass']     ?? '';
+        $dbHost     = trim($_POST['db_host']     ?? '127.0.0.1');
+        $dbPort     = trim($_POST['db_port']     ?? '3306');
+        $dbName     = trim($_POST['db_name']     ?? 'devbridge');
+        $dbUser     = trim($_POST['db_user']     ?? '');
+        $dbPass     = $_POST['db_pass']          ?? '';
+        $appUrl     = rtrim(trim($_POST['app_url'] ?? ''), '/');
+        $adminUser  = trim($_POST['admin_user']  ?? 'admin');
+        $adminPass  = $_POST['admin_pass']       ?? '';
         $adminEmail = trim($_POST['admin_email'] ?? '');
 
         // Basic validation
@@ -58,9 +71,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!preg_match('/^[a-zA-Z0-9_\-]+$/', $adminUser)) {
             $errors[] = 'Admin username may only contain letters, digits, underscores, and hyphens.';
         }
+        if (!preg_match('#^https?://[^/?#\s]+(/[^?#\s]*)?$#i', $appUrl)) {
+            $errors[] = 'Application Base URL must be a valid http or https URL without query string or hash.';
+        }
 
         if (empty($errors)) {
-            // Test DB connection
             try {
                 $dsn = "mysql:host=$dbHost;port=$dbPort;charset=utf8mb4";
                 $pdo = new PDO($dsn, $dbUser, $dbPass, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
@@ -69,21 +84,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $pdo->exec("CREATE DATABASE IF NOT EXISTS `$dbName` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
                 $pdo->exec("USE `$dbName`");
 
-                // Run schema
+                // Run schema — strip comments first so chunks never start with -- or #
                 $sql = file_get_contents(__DIR__ . '/config/schema.sql');
+                $sql = preg_replace('/^\s*--.*$/m', '', (string)$sql);
+                $sql = preg_replace('/^\s*#.*$/m',  '', (string)$sql);
+                $sql = trim((string)$sql);
+
                 foreach (explode(';', $sql) as $statement) {
-                    $s = trim($statement);
-                    if ($s !== '' && !str_starts_with($s, '--') && !str_starts_with($s, 'SET')) {
-                        $pdo->exec($s);
+                    $statement = trim($statement);
+                    if ($statement === '') {
+                        continue;
+                    }
+                    $pdo->exec($statement);
+                }
+
+                // Verify required tables were created
+                $requiredTables = [
+                    'admins', 'settings', 'projects', 'repositories',
+                    'project_rules', 'roadmap_branches', 'roadmap_versions',
+                    'roadmap_change_proposals', 'dev_tasks', 'dev_task_messages',
+                    'dev_task_reviews', 'operator_decisions', 'github_events', 'logs',
+                ];
+                $existingTables = $pdo->query("SHOW TABLES")->fetchAll(PDO::FETCH_COLUMN);
+                foreach ($requiredTables as $tbl) {
+                    if (!in_array($tbl, $existingTables, true)) {
+                        throw new \RuntimeException("Required table was not created: $tbl");
                     }
                 }
 
-                // Also run SET commands separately
-                foreach (['SET NAMES utf8mb4', 'SET CHARACTER SET utf8mb4'] as $set) {
-                    $pdo->exec($set);
-                }
-
-                // Create admin user
+                // Create admin user (only after verifying admins table exists)
                 $hash = password_hash($adminPass, PASSWORD_BCRYPT);
                 $stmt = $pdo->prepare('INSERT INTO admins (username, password_hash, email) VALUES (?, ?, ?)');
                 $stmt->execute([$adminUser, $hash, $adminEmail]);
@@ -91,40 +120,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Generate app secret
                 $appSecret = bin2hex(random_bytes(32));
 
-                // Write config
-                $configContent = <<<PHP
-<?php
-return [
-    'db_host'    => '$dbHost',
-    'db_port'    => '$dbPort',
-    'db_name'    => '$dbName',
-    'db_user'    => '$dbUser',
-    'db_pass'    => '$dbPass',
-    'app_secret' => '$appSecret',
-    'installed'  => true,
-];
-PHP;
+                // Write config using var_export so special characters in passwords are safe
+                $configData = [
+                    'app_url'    => $appUrl,
+                    'db_host'    => $dbHost,
+                    'db_port'    => $dbPort,
+                    'db_name'    => $dbName,
+                    'db_user'    => $dbUser,
+                    'db_pass'    => $dbPass,
+                    'app_secret' => $appSecret,
+                    'installed'  => true,
+                ];
+                $configContent  = "<?php\nreturn " . var_export($configData, true) . ";\n";
                 file_put_contents(CONFIG_FILE, $configContent);
 
                 // Create storage subdirs
-                foreach (['logs', 'snapshots'] as $dir) {
+                foreach (['logs', 'cache', 'tmp', 'backups', 'snapshots'] as $dir) {
                     $path = __DIR__ . '/storage/' . $dir;
                     if (!is_dir($path)) {
                         mkdir($path, 0750, true);
                     }
                 }
 
-                // Write .htaccess for storage
-                file_put_contents(__DIR__ . '/storage/.htaccess', "Order Deny,Allow\nDeny from all\n");
+                // Write .htaccess for storage (deny all browser access)
+                file_put_contents(
+                    __DIR__ . '/storage/.htaccess',
+                    "Order Deny,Allow\nDeny from all\n"
+                );
 
                 // Lock installer
                 file_put_contents(LOCK_FILE, date('Y-m-d H:i:s'));
 
                 $success = true;
             } catch (PDOException $e) {
-                $errors[] = 'Database error: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+                $errors[] = 'Database error: ' . $e->getMessage();
             } catch (Throwable $e) {
-                $errors[] = 'Installation error: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8');
+                $errors[] = 'Installation error: ' . $e->getMessage();
             }
         }
     }
@@ -198,6 +229,15 @@ PHP;
   <?php endforeach; ?>
 
   <form method="post">
+    <div class="section-title">Application</div>
+    <div class="group">
+      <label>Application Base URL <small style="color:#64748b">(no trailing slash)</small></label>
+      <input type="url" name="app_url"
+             value="<?= htmlspecialchars($_POST['app_url'] ?? detectDefaultAppUrl(), ENT_QUOTES, 'UTF-8') ?>"
+             placeholder="http://example.com">
+      <small style="color:#64748b">Domain root, subdomain, or subfolder. e.g. https://dev.example.com or https://example.com/devbridge</small>
+    </div>
+
     <div class="section-title">Database</div>
     <div class="group">
       <label>Host</label>
