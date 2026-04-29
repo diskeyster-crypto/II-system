@@ -1,0 +1,12 @@
+# DevBridge – deny direct access to sensitive directories
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  # Redirect root to login
+  RewriteRule ^$ login.php [L,R=301]
+</IfModule>
+
+# Protect app/ and config/ from direct browser access
+<Files "config.php">
+  Order Deny,Allow
+  Deny from all
+</Files>

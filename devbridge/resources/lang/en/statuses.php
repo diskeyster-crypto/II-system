@@ -1,0 +1,69 @@
+<?php
+return [
+    'draft'                  => 'Draft',
+    'clarifying'             => 'Clarifying',
+    'ready_to_run'           => 'Ready to Run',
+    'blocked_by_dependency'  => 'Blocked by Dependency',
+    'issue_created'          => 'Issue Created',
+    'assigned_to_agent'      => 'Assigned to Agent',
+    'pr_created'             => 'PR Created',
+    'reviewing'              => 'Reviewing',
+    'changes_requested'      => 'Changes Requested',
+    'waiting_for_agent'      => 'Waiting for Agent',
+    'waiting_for_operator'   => 'Waiting for Operator',
+    'approved_by_gpt'        => 'Approved by GPT',
+    'ready_for_manual_merge' => 'Ready for Manual Merge',
+    'merged'                 => 'Merged',
+    'failed'                 => 'Failed',
+    'cancelled'              => 'Cancelled',
+    'active'                 => 'Active',
+    'archived'               => 'Archived',
+    'pending'                => 'Pending',
+    'approved'               => 'Approved',
+    'rejected'               => 'Rejected',
+    // Flat priority keys
+    'priority_low'    => 'Low',
+    'priority_normal' => 'Normal',
+    'priority_high'   => 'High',
+    'priority_urgent' => 'Urgent',
+    // Flat risk keys
+    'risk_low'      => 'Low',
+    'risk_medium'   => 'Medium',
+    'risk_high'     => 'High',
+    'risk_critical' => 'Critical',
+    // Flat run_mode keys
+    'run_mode_manual'             => 'Manual',
+    'run_mode_run_now'            => 'Run Now',
+    'run_mode_queue'              => 'Queue',
+    'run_mode_after_dependencies' => 'After Dependencies',
+    // Flat task_mode keys
+    'task_mode_ai_chat'           => '🤖 AI Chat',
+    'task_mode_manual_spec'       => '📋 Manual Spec',
+    // Nested (backward compat)
+    'priorities' => [
+        'low'    => 'Low',
+        'normal' => 'Normal',
+        'high'   => 'High',
+        'urgent' => 'Urgent',
+    ],
+    'run_modes' => [
+        'manual'               => 'Manual',
+        'run_now'              => 'Run Now',
+        'queue'                => 'Queue',
+        'after_dependencies'   => 'After Dependencies',
+    ],
+    'conflict_levels' => [
+        'none'     => 'None',
+        'low'      => 'Low',
+        'medium'   => 'Medium',
+        'high'     => 'High',
+        'blocking' => 'Blocking',
+    ],
+    'risk_levels' => [
+        'low'      => 'Low',
+        'medium'   => 'Medium',
+        'high'     => 'High',
+        'critical' => 'Critical',
+    ],
+];
+
