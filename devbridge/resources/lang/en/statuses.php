@@ -36,6 +36,9 @@ return [
     'run_mode_run_now'            => 'Run Now',
     'run_mode_queue'              => 'Queue',
     'run_mode_after_dependencies' => 'After Dependencies',
+    // Flat task_mode keys
+    'task_mode_ai_chat'           => '🤖 AI Chat',
+    'task_mode_manual_spec'       => '📋 Manual Spec',
     // Nested (backward compat)
     'priorities' => [
         'low'    => 'Low',

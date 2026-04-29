@@ -36,6 +36,9 @@ return [
     'run_mode_run_now'            => 'Запустить сейчас',
     'run_mode_queue'              => 'В очередь',
     'run_mode_after_dependencies' => 'После зависимостей',
+    // Flat task_mode keys
+    'task_mode_ai_chat'           => '🤖 AI Чат',
+    'task_mode_manual_spec'       => '📋 Ручное ТЗ',
     // Nested (kept for backward compat)
     'priorities' => [
         'low'    => 'Низкий',

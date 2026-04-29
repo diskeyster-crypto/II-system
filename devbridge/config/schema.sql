@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS `dev_tasks` (
   `forbidden_files_json`    TEXT DEFAULT NULL,
   `expected_files_json`     TEXT DEFAULT NULL,
   `depends_on_json`         TEXT DEFAULT NULL,
+  `task_mode`               ENUM('ai_chat','manual_spec') NOT NULL DEFAULT 'ai_chat',
   `risk_level`              ENUM('low','medium','high','critical') NOT NULL DEFAULT 'medium',
   `run_mode`                ENUM('manual','run_now','queue','after_dependencies') NOT NULL DEFAULT 'manual',
   `priority`                ENUM('low','normal','high','urgent') NOT NULL DEFAULT 'normal',

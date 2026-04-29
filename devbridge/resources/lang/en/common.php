@@ -1,6 +1,7 @@
 <?php
 return [
     'save'           => 'Save',
+    'select'         => 'Select',
     'cancel'         => 'Cancel',
     'edit'           => 'Edit',
     'view'           => 'View',

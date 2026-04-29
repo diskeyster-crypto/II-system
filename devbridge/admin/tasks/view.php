@@ -197,7 +197,11 @@ require APP_ROOT . '/views/layout.php';
 
 <!-- Action bar -->
 <div class="flex gap-2 mb-4 items-center flex-wrap">
-  <a href="<?= BASE_URL ?>/admin/tasks/chat.php?id=<?= $taskId ?>" class="btn btn-secondary btn-sm"><?= e(t('tasks.open_chat')) ?></a>
+  <?php if (($task['task_mode'] ?? 'ai_chat') === 'manual_spec'): ?>
+    <a href="<?= BASE_URL ?>/admin/tasks/manual-spec.php?id=<?= $taskId ?>" class="btn btn-secondary btn-sm">📋 <?= e(t('tasks.open_manual_spec')) ?></a>
+  <?php else: ?>
+    <a href="<?= BASE_URL ?>/admin/tasks/chat.php?id=<?= $taskId ?>" class="btn btn-secondary btn-sm"><?= e(t('tasks.open_chat')) ?></a>
+  <?php endif; ?>
   <a href="<?= BASE_URL ?>/admin/tasks/" class="btn btn-secondary btn-sm"><?= e(t('tasks.all_tasks')) ?></a>
 
   <?php if ($task['status'] === 'ready_to_run'): ?>
@@ -248,6 +252,7 @@ require APP_ROOT . '/views/layout.php';
       <div class="card-title"><?= e(t('tasks.details')) ?></div>
       <table>
         <tr><td class="text-muted" style="width:130px"><?= e(t('common.status')) ?></td><td><span class="badge badge-draft"><?= e(t('statuses.' . $task['status'])) ?></span></td></tr>
+        <tr><td class="text-muted"><?= e(t('tasks.planning_mode')) ?></td><td><span class="badge badge-secondary"><?= e(t('statuses.task_mode_' . ($task['task_mode'] ?? 'ai_chat'))) ?></span></td></tr>
         <tr><td class="text-muted"><?= e(t('tasks.priority')) ?></td><td><span class="badge badge-<?= e($task['priority']) ?>"><?= e(t('statuses.priority_' . $task['priority'])) ?></span></td></tr>
         <tr><td class="text-muted"><?= e(t('tasks.risk_level')) ?></td><td><span class="badge badge-<?= e($task['risk_level']) ?>"><?= e(t('statuses.risk_' . $task['risk_level'])) ?></span></td></tr>
         <tr><td class="text-muted"><?= e(t('tasks.conflict_status')) ?></td><td><span class="badge badge-<?= e($task['conflict_status']) ?>"><?= e($task['conflict_status'] ?: '—') ?></span></td></tr>
