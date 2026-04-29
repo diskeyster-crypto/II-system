@@ -50,10 +50,14 @@ After installation, go to **Settings** in the admin panel and configure:
 
 | Setting | Description |
 |---|---|
-| OpenRouter API Key | Your OpenRouter secret key (stored encrypted) |
-| OpenRouter Model | Default AI model (`openai/gpt-4o`, etc.) |
-| AI Temperature | 0.0–1.0, default 0.2 |
-| Max Prompt Chars | Max characters sent to AI per request |
+| Gemini API Key | Your Google Gemini API key (stored encrypted) |
+| Default AI Profile | Economy / Balanced / Strong / Manual |
+| Economy Model | `gemini-2.5-flash-lite` (fast, cost-efficient) |
+| Balanced Model | `gemini-2.5-flash` (default) |
+| Strong Model | `gemini-2.5-pro` (best quality) |
+| JSON Repair Model | Model used for JSON repair retries |
+| AI Temperature | Per-role temperature (planner, critic, reviewer) |
+| Max Output Tokens | Maximum tokens per AI response (default 8192) |
 | GitHub Token | Personal access token with `repo` scope (stored encrypted) |
 | Default GitHub Owner | Your GitHub user or org name |
 | Webhook Base URL | Full URL to devbridge root (for GitHub webhooks) |
@@ -115,8 +119,14 @@ devbridge/
 
 ## AI Provider
 
-DevBridge uses **OpenRouter** as the default AI provider (OpenAI-compatible API).
-Any OpenAI-compatible API can be used by modifying `app/AI/OpenRouterClient.php`.
+DevBridge uses **Google Gemini** as the default AI provider via the Gemini REST API.
+
+Three built-in profiles are available:
+- **Economy** — `gemini-2.5-flash-lite` (fast, cost-efficient)
+- **Balanced** — `gemini-2.5-flash` (default)
+- **Strong** — `gemini-2.5-pro` (best quality)
+
+OpenRouter is available as a legacy provider (set `ai_provider = openrouter` in Settings).
 
 ---
 
